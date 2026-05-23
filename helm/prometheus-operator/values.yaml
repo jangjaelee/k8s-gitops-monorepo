@@ -889,7 +889,7 @@ prometheusOperator:
     #   targetLabel: nodename
     #   replacement: $1
     #   action: replace
-  resources: {}
+  resources:
     limits:
       cpu: 200m
       memory: 200Mi
