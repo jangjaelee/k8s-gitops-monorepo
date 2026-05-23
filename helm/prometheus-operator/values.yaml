@@ -594,6 +594,122 @@ coreDns:
 kubeDns:
   enabled: false
 
+kubeEtcd:
+  enabled: true
+  endpoints: []
+  service:
+    enabled: true
+    port: 2381
+    targetPort: 2381
+    ipDualStack:
+      enabled: false
+      ipFamilies: ["IPv6", "IPv4"]
+      ipFamilyPolicy: "PreferDualStack"
+    # selector:
+    #   component: etcd
+  serviceMonitor:
+    enabled: true
+    interval: ""
+    sampleLimit: 0
+    targetLimit: 0
+    labelLimit: 0
+    labelNameLengthLimit: 0
+    labelValueLengthLimit: 0
+    proxyUrl: ""
+    scheme: http
+    insecureSkipVerify: false
+    serverName: ""
+    caFile: ""
+    certFile: ""
+    keyFile: ""
+    port: http-metrics
+    jobLabel: jobLabel
+    selector: {}
+    metricRelabelings: []
+    relabelings: []
+    additionalLabels: {}
+    targetLabels: []
+    bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+
+kubeScheduler:
+  enabled: true
+  jobNameOverride: ""
+  endpoints: []
+  service:
+    enabled: true
+    port: null
+    targetPort: null
+    ipDualStack:
+      enabled: false
+      ipFamilies: ["IPv6", "IPv4"]
+      ipFamilyPolicy: "PreferDualStack"
+  serviceMonitor:
+    enabled: true
+    interval: ""
+    sampleLimit: 0
+    targetLimit: 0
+    labelLimit: 0
+    labelNameLengthLimit: 0
+    labelValueLengthLimit: 0
+    proxyUrl: ""
+    https: null
+    port: http-metrics
+    jobLabel: jobLabel
+    selector: {}
+    insecureSkipVerify: null
+    serverName: null
+    metricRelabelings: []
+    relabelings: []
+    additionalLabels: {}
+    targetLabels: []
+
+kubeProxy:
+  enabled: true
+  jobNameOverride: ""
+  endpoints: []
+  service:
+    enabled: true
+    port: 10249
+    targetPort: 10249
+    ipDualStack:
+      enabled: false
+      ipFamilies: ["IPv6", "IPv4"]
+      ipFamilyPolicy: "PreferDualStack"
+  serviceMonitor:
+    enabled: true
+    interval: ""
+    sampleLimit: 0
+    targetLimit: 0
+    labelLimit: 0
+    labelNameLengthLimit: 0
+    labelValueLengthLimit: 0
+    proxyUrl: ""
+    port: http-metrics
+    port: http-metrics
+    jobLabel: jobLabel
+    selector: {}
+    https: false
+    metricRelabelings: []
+    relabelings: []
+    additionalLabels: {}
+    targetLabels: []
+    bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+kubeStateMetrics:
+  enabled: false
+
+kube-state-metrics:
+  releaseLabel: true
+  prometheusScrape: false
+  prometheus:
+    monitor:
+      enabled: true
+      http:
+        honorLabels: true
+      metrics:
+        honorLabels: true
+
 nodeExporter:
   enabled: false
   operatingSystems:
