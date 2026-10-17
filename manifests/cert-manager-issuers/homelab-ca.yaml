@@ -24,6 +24,7 @@ spec:
   privateKey:
     algorithm: ECDSA
     size: 256
+    rotationPolicy: Never   # 갱신 때 키를 유지 → 클라이언트에 등록한 CA 신뢰가 계속 유효
   issuerRef:
     group: cert-manager.io
     kind: ClusterIssuer
