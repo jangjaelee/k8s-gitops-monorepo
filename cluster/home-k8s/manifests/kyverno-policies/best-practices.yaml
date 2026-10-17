@@ -13,7 +13,7 @@ metadata:
     policies.kyverno.io/description: >-
       이미지는 태그(또는 digest)를 명시하고 :latest를 쓰지 않는다. 같은 매니페스트가 시점마다 다른 이미지를 받는 것을 막는다.
 spec:
-  failurePolicy: Fail
+  failurePolicy: Ignore    # Kyverno 장애 시 통과(helm/kyverno-policies/values.yaml과 같음)
   matchConstraints:
     resourceRules:
       - apiGroups: [""]
@@ -46,7 +46,7 @@ metadata:
     policies.kyverno.io/description: >-
       모든 컨테이너에 CPU·메모리 requests와 메모리 limit을 둔다. 스케줄링 근거와 노드 메모리 고갈(OOM) 방지용.
 spec:
-  failurePolicy: Fail
+  failurePolicy: Ignore    # Kyverno 장애 시 통과(helm/kyverno-policies/values.yaml과 같음)
   matchConstraints:
     resourceRules:
       - apiGroups: [""]

@@ -193,6 +193,7 @@ sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keyc
   kubectl get policyreport -A                                  # 네임스페이스별 pass/fail 요약
   kubectl get policyreport -n <ns> -o yaml | yq '.results[] | select(.result=="fail") | [.policy, .resources[0].name, .message]'
   ```
+- `failurePolicy: Ignore`: Kyverno webhook이 응답하지 못해도 Pod 생성은 통과합니다(Kyverno 장애가 클러스터 장애로 번지지 않게).
 - 차단 전환은 정책 단위로 합니다: 차트 정책은 values의 `validationFailureActionByPolicy`, 직접 만든 정책은 `validationActions: [Deny]`.
 
 ## Vault

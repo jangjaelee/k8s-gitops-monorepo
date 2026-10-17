@@ -20,7 +20,9 @@ config:
             - istio-system
             - cert-manager
             - local-path-storage
-  # 위와 같은 네임스페이스를 background 스캔·리포트에서도 뺀다(resourceFilters에 추가)
+  # 위와 같은 네임스페이스를 엔진 resourceFilters에도 넣는다(레거시 ClusterPolicy·generate/mutate 처리 제외).
+  # CEL ValidatingPolicy의 background 스캔에는 적용되지 않는다 → 정책 쪽 matchConditions
+  # (helm/kyverno-policies/values.yaml vpolExclude, manifests/kyverno-policies/)에서 따로 제외한다.
   resourceFiltersIncludeNamespaces:
     - kube-system
     - kube-public

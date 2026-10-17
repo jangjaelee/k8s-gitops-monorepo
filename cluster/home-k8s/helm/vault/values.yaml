@@ -41,6 +41,19 @@ server:
       memory: 256Mi
     limits:
       memory: 512Mi
+  # 차트 기본 securityContext에 seccompProfile만 더한다(Kyverno restrict-seccomp-strict).
+  # pod를 지정하면 차트 기본값을 통째로 대체하므로 기본값(runAsNonRoot, uid 100, gid/fsGroup 1000)을 함께 적는다.
+  statefulSet:
+    securityContext:
+      pod:
+        runAsNonRoot: true
+        runAsUser: 100
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      container:
+        allowPrivilegeEscalation: false
 
 ui:
   enabled: true
