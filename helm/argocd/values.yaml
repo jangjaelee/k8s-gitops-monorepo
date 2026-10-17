@@ -1,14 +1,25 @@
 # chart: argo/argo-cd 9.5.4 (Argo CD v3.3.8), release argocd, ns argo-cd (Argo CD 미관리, Helm CLI로 설치)
-# rev 1(기본값 설치) 이후 kubectl edit/patch로 들어간 설정을 그대로 옮겼다. 이 파일로 helm upgrade하면 클러스터 상태가 바뀌지 않는다.
+# 접속: https://argocd.awx.kr (LB 192.168.50.201, TLS는 manifests/argocd/certificate.yaml)
 configs:
   cm:
-    url: https://localhost:8080          # 현재 값 유지 (차트 기본은 https://argocd.example.com)
+    url: https://argocd.awx.kr          # SSO 리다이렉트 기준 주소 (https://argocd.awx.kr/auth/callback)
     accounts.linux: apiKey,login
     accounts.linux.enabled: "true"
+    # Google 로그인 (OIDC 직접 연동, Dex 미사용)
+    # OAuth 클라이언트: GCP 프로젝트 alex-space-0001, 동의 화면 Testing(테스트 사용자만 로그인 가능)
+    # clientSecret은 레포에 두지 않는다 → secret argo-cd/argocd-oidc-google(라벨 app.kubernetes.io/part-of=argocd)의 clientSecret 키
+    oidc.config: |
+      name: Google
+      issuer: https://accounts.google.com
+      clientID: 932993981073-vm4idt1sun0mvuavk51kr0mib915ba49.apps.googleusercontent.com
+      clientSecret: $argocd-oidc-google:clientSecret
+      requestedScopes: ["openid", "profile", "email"]
   rbac:
-    policy.default: role:admin
+    policy.default: ""                  # 매핑되지 않은 사용자는 권한 없음 (이전: role:admin)
+    scopes: "[email]"                   # RBAC 매핑에 OIDC email 클레임 사용
     policy.csv: |
       g, linux, role:admin
+      g, cine0831@gmail.com, role:admin
 
 server:
   service:
