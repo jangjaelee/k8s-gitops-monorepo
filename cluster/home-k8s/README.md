@@ -57,8 +57,8 @@ CNI나 Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 �
 | cert-manager-issuers | system | cert-manager | 이 레포 path @ main | — | `manifests/cert-manager-issuers/` | 사설 CA `homelab-ca` |
 | istio-base | system | istio-system | istio/base 1.30.3 | 1.30.3 | `helm/istio-base/values.yaml` | `defaultRevision: 1-30-3` |
 | istio-cni | system | istio-system | istio/cni 1.30.3 | 1.30.3 | `helm/istio-cni/values.yaml` | Cilium 체이닝 |
-| istiod-1-30-3 | system | istio-system | istio/istiod 1.30.3 | 1.30.3 | `helm/istiod-1-30-3/values.yaml` | revision `1-30-3`, tag `default`, replicas 2(HPA min 2, PDB) |
-| gateways | system | istio-system | 이 레포 path @ main | proxyv2 1.30.3 | `manifests/gateways/` | Gateway(replicas 2, PDB), 인증서, HTTP→HTTPS 리다이렉트 |
+| istiod-1-30-3 | system | istio-system | istio/istiod 1.30.3 | 1.30.3 | `helm/istiod-1-30-3/values.yaml` | revision `1-30-3`, tag `default`, replicas 2(HPA min 2, PDB, 노드 분산) |
+| gateways | system | istio-system | 이 레포 path @ main | proxyv2 1.30.3 | `manifests/gateways/` | Gateway(replicas 2, PDB, 노드 분산), 인증서, HTTP→HTTPS 리다이렉트 |
 | argocd-config | system | argo-cd | 이 레포 path @ main | — | `manifests/argocd/` | HTTPRoute `argocd.awx.kr` |
 | argo-rollouts | system | argo-rollouts | argo/argo-rollouts 2.43.8 | v1.10.1 | `helm/argo-rollouts/values.yaml` | Gateway API 플러그인 v0.17.0 |
 | kyverno | system | kyverno | kyverno/kyverno 3.9.1 | v1.19.1 | `helm/kyverno/values.yaml` | 엔진, `ServerSideDiff=true` |

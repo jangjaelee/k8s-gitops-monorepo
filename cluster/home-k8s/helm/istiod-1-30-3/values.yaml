@@ -6,6 +6,19 @@ revisionTags:
   - default
 pilot:
   autoscaleMin: 2         # HPA 최소 2 → 차트가 PDB(minAvailable 1)도 생성
+  # 레플리카를 서로 다른 노드에 배치. Honor: taint 노드(control-plane, NotReady)는 계산에서 제외 →
+  # 가능한 노드가 1대뿐이면 같은 노드에도 뜬다. pod-template-hash: 롤링 중 이전 ReplicaSet Pod는 세지 않음
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: DoNotSchedule
+      nodeTaintsPolicy: Honor
+      labelSelector:
+        matchLabels:
+          app: istiod
+          istio.io/rev: 1-30-3
+      matchLabelKeys:
+        - pod-template-hash
   cni:
     enabled: true          # istio-init(NET_ADMIN) 대신 istio-cni가 트래픽 가로채기 설정
 meshConfig:
