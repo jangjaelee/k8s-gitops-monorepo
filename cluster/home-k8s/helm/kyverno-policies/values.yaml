@@ -9,6 +9,7 @@
 podSecurityStandard: restricted   # baseline 11개 + restricted 6개 = 17개 (Audit라 현황 파악용으로 넓게)
 policyType: ValidatingPolicy      # CEL 기반 policies.kyverno.io (차트 기본). 레거시 ClusterPolicy는 deprecated
 validationFailureAction: Audit
+failurePolicy: Ignore             # Kyverno webhook이 응답하지 못하면 통과시킨다(기본 Fail은 Kyverno 장애 시 Pod 생성 실패). Enforce 전환 정책은 Fail 검토
 background: true                  # 이미 떠 있는 Pod도 주기적으로 검사해 리포트
 
 vpolExclude:
