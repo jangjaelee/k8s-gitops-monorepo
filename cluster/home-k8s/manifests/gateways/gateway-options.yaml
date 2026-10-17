@@ -1,0 +1,14 @@
+# Gateway istio-gateway의 infrastructure.parametersRef (gateway.yaml)
+# Istio가 자동 생성하는 리소스에 덮어쓸 값. replicas 2 + PDB로 노드 하나가 빠져도 인그레스 유지.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: istio-gateway-options
+  namespace: istio-system
+data:
+  deployment: |
+    spec:
+      replicas: 2
+  podDisruptionBudget: |
+    spec:
+      minAvailable: 1

@@ -5,6 +5,7 @@ revision: 1-30-3
 revisionTags:
   - default
 pilot:
+  autoscaleMin: 2         # HPA 최소 2 → 차트가 PDB(minAvailable 1)도 생성
   cni:
     enabled: true          # istio-init(NET_ADMIN) 대신 istio-cni가 트래픽 가로채기 설정
 meshConfig:
