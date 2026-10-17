@@ -63,6 +63,7 @@ Client ──► 192.168.50.200 (Cilium LB IPAM, L2 ARP)
 | vault | chart vault 0.34.1 (Vault 2.0.4), raft 단일 노드, 자동 unseal CronJob, `vault.awx.kr` | `helm/vault/values.yaml`, `manifests/vault/` | Argo CD |
 | node-local-dns | chart deliveryhero/node-local-dns 2.9.2 (OCI) + CiliumLocalRedirectPolicy | `helm/node-local-dns/values.yaml`, `manifests/node-local-dns/` | Argo CD |
 | argo-rollouts | chart argo-rollouts 2.43.8 (v1.10.1) + Gateway API 플러그인 v0.17.0 | `helm/argo-rollouts/values.yaml` | Argo CD |
+| kyverno | chart kyverno 3.9.1 (v1.19.1) — 엔진만, 시스템 네임스페이스는 webhook 제외 | `helm/kyverno/values.yaml` | Argo CD |
 | kube-prometheus-stack | chart 84.1.0 | `helm/prometheus-operator/values.yaml` | Argo CD |
 | kube-state-metrics | chart 7.4.0 | 기본값 | Argo CD |
 | metric-server | chart metrics-server 3.13.0 | Application parameters | Argo CD |
@@ -107,6 +108,7 @@ Cilium과 Argo CD는 Argo CD로 관리하지 않습니다. CNI나 Argo CD가 망
    kubectl apply -f argocd/applications/gateways.yaml
    kubectl apply -f argocd/applications/argocd-config.yaml
    kubectl apply -f argocd/applications/argo-rollouts.yaml
+   kubectl apply -f argocd/applications/kyverno.yaml
    kubectl apply -f argocd/repositories/deliveryhero-oci.yaml -f argocd/applications/node-local-dns.yaml   # Cilium localRedirectPolicies 필요
    kubectl apply -f argocd/applications/vault.yaml       # 이후 vault operator init + Secret vault-unseal-keys 생성
    kubectl apply -f argocd/applications/kube-state-metrics.yaml -f argocd/applications/metric-server.yaml -f argocd/applications/kube-prometheus-stack.yaml

@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kyverno
+  namespace: argo-cd
+spec:
+  project: system
+  sources:
+    - repoURL: https://kyverno.github.io/kyverno/
+      chart: kyverno
+      targetRevision: 3.9.1
+      helm:
+        releaseName: kyverno
+        valueFiles:
+          - $values/helm/kyverno/values.yaml
+    - repoURL: https://github.com/jangjaelee/k8s-gitops-monorepo.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kyverno
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true          # Kyverno CRD가 커서 필수

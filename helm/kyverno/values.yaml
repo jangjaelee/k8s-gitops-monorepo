@@ -1,0 +1,42 @@
+# chart: kyverno/kyverno 3.9.1 (Kyverno v1.19.1)  (Argo CD app: argocd/applications/kyverno.yaml)
+# 엔진만 설치한다. 정책(ClusterPolicy)은 별도 PR에서 Audit 모드로 추가한다.
+# CRD가 커서 Argo CD 앱에 ServerSideApply=true가 필요하다(client-side apply는 annotation 크기 초과).
+
+config:
+  # admission webhook 대상에서 뺄 네임스페이스. Kyverno가 죽거나 정책이 잘못돼도
+  # 클러스터 핵심 구성요소(CNI, GitOps, 메시, 인증서, 스토리지)의 생성·수정이 막히지 않게 한다.
+  # kyverno 네임스페이스는 excludeKyvernoNamespace(기본 true)로 따로 빠진다.
+  webhooks:
+    namespaceSelector:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values:
+            - kube-system
+            - kube-public
+            - kube-node-lease
+            - cilium-secrets
+            - argo-cd
+            - istio-system
+            - cert-manager
+            - local-path-storage
+  # 위와 같은 네임스페이스를 background 스캔·리포트에서도 뺀다(resourceFilters에 추가)
+  resourceFiltersIncludeNamespaces:
+    - kube-system
+    - kube-public
+    - kube-node-lease
+    - cilium-secrets
+    - argo-cd
+    - istio-system
+    - cert-manager
+    - local-path-storage
+
+# 홈랩: 컨트롤러는 모두 1개(차트 기본). admission은 replicas 1이면 PDB를 만들지 않는다.
+admissionController:
+  replicas: 1
+backgroundController:
+  replicas: 1
+cleanupController:
+  replicas: 1
+reportsController:
+  replicas: 1
