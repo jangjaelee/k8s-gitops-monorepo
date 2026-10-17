@@ -1,0 +1,39 @@
+# 홈랩 사설 CA (Argo CD app: argocd/applications/cert-manager-issuers.yaml)
+# 도메인이 없어 공인 CA(ACME)를 쓸 수 없으므로 자체 서명 루트 CA로 인증서를 발급한다.
+# 브라우저 경고를 없애려면 루트 CA(secret cert-manager/homelab-root-ca의 ca.crt)를 클라이언트에 신뢰 등록한다.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned-bootstrap
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: homelab-root-ca
+  namespace: cert-manager
+spec:
+  isCA: true
+  commonName: homelab-root-ca
+  subject:
+    organizations: ["homelab"]
+  secretName: homelab-root-ca
+  duration: 87600h          # 10년
+  renewBefore: 720h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: selfsigned-bootstrap
+---
+# ClusterIssuer의 ca.secretName은 cert-manager의 cluster resource namespace(cert-manager)에서 찾는다
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: homelab-ca
+spec:
+  ca:
+    secretName: homelab-root-ca

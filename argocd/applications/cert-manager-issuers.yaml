@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager-issuers
+  namespace: argo-cd
+spec:
+  project: system
+  source:
+    repoURL: https://github.com/jangjaelee/k8s-gitops-monorepo.git
+    targetRevision: main
+    path: manifests/cert-manager-issuers
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cert-manager
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
