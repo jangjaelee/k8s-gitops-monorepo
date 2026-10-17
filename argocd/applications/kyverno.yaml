@@ -3,6 +3,9 @@ kind: Application
 metadata:
   name: kyverno
   namespace: argo-cd
+  annotations:
+    # policies.kyverno.io CRD 11개가 클라이언트 diff로는 계속 OutOfSync로 보인다(서버 diff는 차이 없음)
+    argocd.argoproj.io/compare-options: ServerSideDiff=true
 spec:
   project: system
   sources:
