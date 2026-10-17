@@ -10,7 +10,7 @@
 
 | 클러스터 | 설명 | 명세 |
 |---|---|---|
-| `home-k8s` | 집 홈랩. kubeadm 4노드(Wi-Fi), Kubernetes v1.36.0, Cilium 1.20.2, Argo CD v3.3.8, Istio 1.30.3 | [cluster/home-k8s/README.md](cluster/home-k8s/README.md) |
+| `home-k8s` | 집 홈랩. kubeadm 4노드(Wi-Fi), Kubernetes v1.36.0, Cilium 1.20.2, Argo CD v3.5.5, Istio 1.30.3 | [cluster/home-k8s/README.md](cluster/home-k8s/README.md) |
 
 ## 디렉터리
 
