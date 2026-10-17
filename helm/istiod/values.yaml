@@ -1,6 +1,0 @@
-# chart: istio/istiod 1.30.1  (Argo CD app: argocd/applications/istiod.yaml)
-pilot:
-  cni:
-    enabled: true          # istio-init(NET_ADMIN) 대신 istio-cni가 트래픽 가로채기 설정
-meshConfig:
-  accessLogFile: /dev/stdout

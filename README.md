@@ -13,7 +13,7 @@
 | Kubernetes | v1.36.0 |
 | CNI | Cilium 1.20.2 — kube-proxy 대체, VXLAN, LB IPAM + L2 announcement |
 | GitOps | Argo CD v3.3.8 (chart argo-cd 9.5.4) |
-| Service mesh | Istio 1.30.1 sidecar 모드 + istio-cni |
+| Service mesh | Istio 1.30.3 sidecar 모드 + istio-cni, revision `1-30-3`(tag `default`) |
 | Ingress | Gateway API v1.5.1 (Istio 구현) |
 | 인증서 | cert-manager v1.20.2 + 사설 CA(`ClusterIssuer/homelab-ca`) |
 
@@ -55,9 +55,9 @@ Client ──► 192.168.50.200 (Cilium LB IPAM, L2 ARP)
 | gateway-api-crds | Gateway API CRD v1.5.1 standard | 공식 저장소 `config/crd/standard`(태그 v1.5.1) | Argo CD |
 | cert-manager | chart cert-manager v1.20.2 | Application inline values | Argo CD |
 | cert-manager-issuers | 사설 CA ClusterIssuer | `manifests/cert-manager-issuers/` | Argo CD |
-| istio-base | chart base 1.30.1 | `helm/istio-base/values.yaml` | Argo CD |
-| istio-cni | chart cni 1.30.1 | `helm/istio-cni/values.yaml` | Argo CD |
-| istiod | chart istiod 1.30.1 | `helm/istiod/values.yaml` | Argo CD |
+| istio-base | chart base 1.30.3 | `helm/istio-base/values.yaml` | Argo CD |
+| istio-cni | chart cni 1.30.3 | `helm/istio-cni/values.yaml` | Argo CD |
+| istiod-1-30-3 | chart istiod 1.30.3, revision `1-30-3` | `helm/istiod-1-30-3/values.yaml` | Argo CD |
 | gateways | Gateway API Gateway, 인증서 | `manifests/gateways/` | Argo CD |
 | kube-prometheus-stack | chart 84.1.0 | `helm/prometheus-operator/values.yaml` | Argo CD |
 | kube-state-metrics | chart 7.4.0 | 기본값 | Argo CD |
@@ -98,7 +98,7 @@ Cilium과 Argo CD는 Argo CD로 관리하지 않습니다. CNI나 Argo CD가 망
    kubectl apply -f argocd/applications/cert-manager-issuers.yaml
    kubectl apply -f argocd/applications/istio-base.yaml
    kubectl apply -f argocd/applications/istio-cni.yaml
-   kubectl apply -f argocd/applications/istiod.yaml
+   kubectl apply -f argocd/applications/istiod-1-30-3.yaml
    kubectl apply -f argocd/applications/gateways.yaml
    kubectl apply -f argocd/applications/argocd-config.yaml
    kubectl apply -f argocd/applications/kube-state-metrics.yaml -f argocd/applications/metric-server.yaml -f argocd/applications/kube-prometheus-stack.yaml
@@ -107,13 +107,13 @@ Cilium과 Argo CD는 Argo CD로 관리하지 않습니다. CNI나 Argo CD가 망
 ## 앱을 Gateway에 붙이기
 
 ```yaml
-# 네임스페이스에 sidecar 주입
+# 네임스페이스에 sidecar 주입 (Istio revision 1-30-3)
 apiVersion: v1
 kind: Namespace
 metadata:
   name: my-app
   labels:
-    istio-injection: enabled
+    istio.io/rev: 1-30-3
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute

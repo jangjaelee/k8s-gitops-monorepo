@@ -1,6 +1,9 @@
 # chart: istio/istiod 1.30.3  (Argo CD app: argocd/applications/istiod-1-30-3.yaml)
 # 리비전 기반 설치. 워크로드는 네임스페이스/리소스 라벨 istio.io/rev=1-30-3 으로 이 control plane을 선택한다.
 revision: 1-30-3
+# revision tag default → 이 리비전. 리비전 라벨이 없는 Gateway·GatewayClass 관리, istio-injection=enabled 호환
+revisionTags:
+  - default
 pilot:
   cni:
     enabled: true          # istio-init(NET_ADMIN) 대신 istio-cni가 트래픽 가로채기 설정

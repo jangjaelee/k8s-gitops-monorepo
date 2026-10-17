@@ -32,6 +32,11 @@ spec:
       name: istio-sidecar-injector-1-30-3
       jqPathExpressions:
         - .webhooks[]?.clientConfig.caBundle
+    - group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+      name: istio-revision-tag-default
+      jqPathExpressions:
+        - .webhooks[]?.clientConfig.caBundle
   syncPolicy:
     automated:
       prune: true
