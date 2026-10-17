@@ -245,4 +245,5 @@ sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keyc
 ## 알려진 제약
 
 - **Wi-Fi 노드와 L2 announcement**: worker-01/02(Broadcom `brcmfmac`)는 promiscuous 모드가 꺼져 있으면 LB IP의 ARP 요청을 받지 못해, 모든 노드에 `wifi-promisc.service`를 둡니다(`node-config/wifi-promisc/`).
+- **iwlwifi 노드와 L2 announcement**: master·worker-03(Intel `iwlwifi`)은 주기 Wi-Fi 스캔 때문에 Cilium 장치 정보가 망가져 lease를 잡으면 LB IP가 응답하지 않았습니다. 두 노드의 Wi-Fi를 한 AP에 고정해 해결했습니다(`node-config/wifi-bssid-lock/`, 로밍 안 함).
 - 사설 CA 인증서이므로 CA를 신뢰 등록하지 않은 기기에서는 인증서 경고가 납니다.
