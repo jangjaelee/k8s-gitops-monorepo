@@ -6,19 +6,25 @@
 set -euo pipefail
 h=${1:?SSH host}; b=${2:?BSSID or --unlock}
 [ "$b" = "--unlock" ] && b=""
+if [ -n "$b" ] && ! [[ "$b" =~ ^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$ ]]; then echo "BSSID 형식 오류: $b"; exit 1; fi
 
 conn=$(ssh "$h" 'dev=$(ls /sys/class/net | grep "^wl" | head -1); nmcli -t -f NAME,DEVICE con show --active | awk -F: -v d="$dev" "\$2==d{print \$1}"')
 [ -n "$conn" ] || { echo "활성 Wi-Fi 연결을 못 찾음"; exit 1; }
 old=$(ssh "$h" "nmcli -g 802-11-wireless.bssid con show '$conn' | tr -d '\\\\'")
 echo "== $h  연결=$conn  현재 bssid=${old:-없음}  → ${b:-없음}"
 
-ssh "$h" "sudo systemctl stop wifi-bssid-rollback.timer 2>/dev/null || true
-  sudo systemd-run --unit=wifi-bssid-rollback --on-active=240 /bin/sh -c \"nmcli con mod '$conn' 802-11-wireless.bssid '$old' && nmcli con up '$conn'\" >/dev/null
-  sudo systemd-run --unit=wifi-bssid-apply --on-active=3 /bin/sh -c \"nmcli con mod '$conn' 802-11-wireless.bssid '$b' && nmcli con up '$conn'\" >/dev/null"
+# 이전 실행이 남긴 unit을 먼저 정리하고, 되돌림 타이머가 걸린 경우에만 적용한다(&&).
+ssh "$h" "set -e
+  for u in wifi-bssid-rollback wifi-bssid-apply; do sudo systemctl stop \$u.timer \$u.service 2>/dev/null || true; sudo systemctl reset-failed \$u.timer \$u.service 2>/dev/null || true; done
+  sudo systemd-run --unit=wifi-bssid-rollback --on-active=240 --timer-property=AccuracySec=1s /bin/sh -c \"nmcli con mod '$conn' 802-11-wireless.bssid '$old' && nmcli con up '$conn'\" >/dev/null &&
+  sudo systemd-run --unit=wifi-bssid-apply --on-active=3 --timer-property=AccuracySec=1s /bin/sh -c \"nmcli con mod '$conn' 802-11-wireless.bssid '$b' && nmcli con up '$conn'\" >/dev/null"
 
 sleep 15
 for i in $(seq 1 20); do
-  if ssh -o ConnectTimeout=4 "$h" "nmcli -g 802-11-wireless.bssid con show '$conn' | tr -d '\\\\' | grep -qix '${b:-}' && iw dev \$(ls /sys/class/net | grep '^wl' | head -1) link | grep -q Connected" 2>/dev/null; then
+  # 적용 unit이 끝났고, 설정값이 목표와 같고, (고정이면) 실제로 그 AP에 붙어 있어야 성공
+  if ssh -o ConnectTimeout=4 "$h" "! systemctl is-active -q wifi-bssid-apply.timer wifi-bssid-apply.service &&
+      nmcli -g 802-11-wireless.bssid con show '$conn' | tr -d '\\\\' | grep -qix '${b:-}' &&
+      iw dev \$(ls /sys/class/net | grep '^wl' | head -1) link | grep -qi 'Connected to ${b:-}'" 2>/dev/null; then
     ssh "$h" 'sudo systemctl stop wifi-bssid-rollback.timer; iw dev $(ls /sys/class/net | grep "^wl" | head -1) link | head -1'
     echo "적용 완료, 되돌림 타이머 해제. 다음: 이 노드의 cilium-agent 재시작"
     exit 0
