@@ -1,0 +1,30 @@
+# chart: cilium/cilium 1.20.2 (Argo CD 미관리, Helm CLI로 설치 — CLAUDE.md "Argo CD로 관리하지 않는 것")
+# rev 7 예정(2026-10-17): Istio sidecar용 socketLB.hostNamespaceOnly, cni.exclusive 추가
+cluster:
+  name: kubernetes
+cni:
+  exclusive: false          # istio-cni가 Cilium CNI conflist에 체이닝할 수 있게 둔다 (Istio)
+externalIPs:
+  enabled: true
+hubble:
+  relay:
+    enabled: true
+  ui:
+    enabled: true
+ipam:
+  operator:
+    clusterPoolIPv4PodCIDRList: 10.0.0.0/16
+k8sClientRateLimit:
+  burst: 100
+  qps: 50
+k8sServiceHost: 192.168.50.101
+k8sServicePort: 6443
+kubeProxyReplacement: true
+l2announcements:
+  enabled: true
+operator:
+  replicas: 1
+routingMode: tunnel
+socketLB:
+  hostNamespaceOnly: true   # Pod 안에서는 socket LB 끔 → Istio sidecar가 ClusterIP를 그대로 봄
+tunnelProtocol: vxlan
