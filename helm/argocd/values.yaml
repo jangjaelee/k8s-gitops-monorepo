@@ -1,0 +1,17 @@
+# chart: argo/argo-cd 9.5.4 (Argo CD v3.3.8), release argocd, ns argo-cd (Argo CD 미관리, Helm CLI로 설치)
+# rev 1(기본값 설치) 이후 kubectl edit/patch로 들어간 설정을 그대로 옮겼다. 이 파일로 helm upgrade하면 클러스터 상태가 바뀌지 않는다.
+configs:
+  cm:
+    url: https://localhost:8080          # 현재 값 유지 (차트 기본은 https://argocd.example.com)
+    accounts.linux: apiKey,login
+    accounts.linux.enabled: "true"
+  rbac:
+    policy.default: role:admin
+    policy.csv: |
+      g, linux, role:admin
+
+server:
+  service:
+    type: LoadBalancer
+    annotations:
+      lbipam.cilium.io/ips: "192.168.50.200"   # Cilium LB IPAM 고정 IP
