@@ -1,0 +1,4 @@
+# chart: metrics-server/metrics-server 3.13.0 (metrics-server v0.8.0)  (Argo CD app: argocd/applications/metric-server.yaml)
+args:
+  - --kubelet-insecure-tls                          # kubeadm kubelet 인증서가 노드 IP SAN 없는 자체 서명이라 검증 생략
+  - --kubelet-preferred-address-types=InternalIP    # 노드 이름 DNS가 없어서 InternalIP로 kubelet 접속

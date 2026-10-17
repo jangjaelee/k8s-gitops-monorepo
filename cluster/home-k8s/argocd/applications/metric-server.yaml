@@ -4,20 +4,21 @@ metadata:
   name: metric-server
   namespace: argo-cd
 spec:
-  destination:
-    namespace: kube-system
-    server: https://kubernetes.default.svc
   project: o11y
-  source:
-    chart: metrics-server
-    helm:
-      parameters:
-        - name: args[0]
-          value: --kubelet-insecure-tls
-        - name: args[1]
-          value: --kubelet-preferred-address-types=InternalIP
-    repoURL: https://kubernetes-sigs.github.io/metrics-server/
-    targetRevision: 3.13.0
+  sources:
+    - repoURL: https://kubernetes-sigs.github.io/metrics-server/
+      chart: metrics-server
+      targetRevision: 3.13.0
+      helm:
+        releaseName: metric-server        # 기존 리소스 이름(metric-server-metrics-server) 유지
+        valueFiles:
+          - $values/cluster/home-k8s/helm/metrics-server/values.yaml
+    - repoURL: https://github.com/jangjaelee/k8s-gitops-monorepo.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
   syncPolicy:
     automated:
       prune: true
