@@ -39,6 +39,7 @@ Client ──► 192.168.50.200 (Cilium LB IPAM, L2 ARP)
 ├── argocd/applications/   # Argo CD Application (kubectl apply로 등록)
 ├── helm/<release>/        # Helm values (Argo CD multi-source의 $values 또는 Helm CLI)
 ├── manifests/<app>/       # Helm이 아닌 매니페스트 (path 소스 Application)
+├── node-config/           # 노드(OS) 설정 — Argo CD 미적용, SSH로 설치
 ├── .claude/agents/        # PR 리뷰·머지 에이전트
 └── CLAUDE.md              # 작성 규칙 (Application, values, 작업 흐름)
 ```
@@ -147,5 +148,5 @@ sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keyc
 
 ## 알려진 제약
 
-- **Wi-Fi 노드와 L2 announcement**: worker-01/02(Broadcom `brcmfmac`)는 promiscuous 모드가 꺼져 있으면 LB IP의 ARP 요청을 받지 못해, 모든 노드에 `wifi-promisc.service`를 둡니다(레포 밖, 노드 설정).
+- **Wi-Fi 노드와 L2 announcement**: worker-01/02(Broadcom `brcmfmac`)는 promiscuous 모드가 꺼져 있으면 LB IP의 ARP 요청을 받지 못해, 모든 노드에 `wifi-promisc.service`를 둡니다(`node-config/wifi-promisc/`).
 - 사설 CA 인증서이므로 CA를 신뢰 등록하지 않은 기기에서는 인증서 경고가 납니다.
