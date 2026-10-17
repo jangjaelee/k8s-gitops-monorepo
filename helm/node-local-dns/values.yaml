@@ -1,0 +1,12 @@
+# chart: deliveryhero/node-local-dns 2.9.2 (k8s-dns-node-cache 1.26.7, OCI ghcr.io/deliveryhero/helm-charts)  (Argo CD app: argocd/applications/node-local-dns.yaml)
+# kube-proxy가 없는(Cilium KPR) 클러스터용 구성: iptables·dummy 인터페이스를 쓰지 않고(일반 Pod, hostNetwork 아님),
+# CiliumLocalRedirectPolicy(manifests/node-local-dns/lrp.yaml)가 kube-dns(172.16.0.10) 트래픽을 같은 노드의 이 Pod로 보낸다.
+# 캐시 미스는 node-local-dns-upstream 서비스(CoreDNS 직접)로 보내므로 리다이렉트 루프가 없다.
+config:
+  dnsDomain: cluster.local
+  dnsServer: "172.16.0.10"      # kube-dns ClusterIP
+  localDns: "169.254.20.10"     # setupInterface=false라 실제로 쓰이지 않음(차트 필수 값)
+  bindIp: false                 # 0.0.0.0에 바인드
+  setupInterface: false
+  setupIptables: false          # → hostNetwork: false
+  skipTeardown: true
