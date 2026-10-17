@@ -1,24 +1,24 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: local-path-provisioner
+  name: istio-cni
   namespace: argo-cd
 spec:
   project: system
   sources:
-    - repoURL: https://github.com/rancher/local-path-provisioner.git
-      targetRevision: v0.0.37
-      path: deploy/chart/local-path-provisioner
+    - repoURL: https://istio-release.storage.googleapis.com/charts
+      chart: cni
+      targetRevision: 1.30.3
       helm:
-        releaseName: local-path-provisioner
+        releaseName: istio-cni
         valueFiles:
-          - $values/helm/local-path-provisioner/values.yaml
+          - $values/cluster/home-k8s/helm/istio-cni/values.yaml
     - repoURL: https://github.com/jangjaelee/k8s-gitops-monorepo.git
       targetRevision: main
       ref: values
   destination:
     server: https://kubernetes.default.svc
-    namespace: local-path-storage
+    namespace: istio-system
   syncPolicy:
     automated:
       prune: true
@@ -26,3 +26,4 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
+      - RespectIgnoreDifferences=true

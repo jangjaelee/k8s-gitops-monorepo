@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/jangjaelee/k8s-gitops-monorepo.git
     targetRevision: main
-    path: manifests/argocd
+    path: cluster/home-k8s/manifests/argocd
   destination:
     server: https://kubernetes.default.svc
     namespace: argo-cd

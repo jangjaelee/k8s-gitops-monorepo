@@ -12,7 +12,7 @@ spec:
     - chart: kube-prometheus-stack
       helm:
         valueFiles:
-          - $values/helm/prometheus-operator/values.yaml
+          - $values/cluster/home-k8s/helm/prometheus-operator/values.yaml
       repoURL: https://prometheus-community.github.io/helm-charts
       targetRevision: 84.1.0
     - ref: values

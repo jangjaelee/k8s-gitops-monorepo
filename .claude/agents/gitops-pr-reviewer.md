@@ -39,8 +39,9 @@ tools: Bash, Read, Grep, Glob
 | 4 | 버전 고정 | `Application`의 Helm `targetRevision`이 정확한 버전(예: `1.30.1`)인지. 이 레포 자체를 가리키는 소스는 `main` 허용 |
 | 5 | Application 규칙 | `CLAUDE.md`의 규칙(namespace `argo-cd`, project, multi-source `$values` 경로가 실제 파일과 일치, `ServerSideApply=true`) |
 | 6 | Helm 렌더링 | values를 바꾸거나 추가했으면 Application의 차트·버전으로 `helm template <release> <repo>/<chart> --version <v> -n <ns> -f <values>`가 성공하는지. 차트 저장소가 로컬에 없으면 `helm repo add`로 추가 |
-| 7 | 서버 dry-run | 바뀐 `argocd/applications/*.yaml`와 `manifests/**`를 `kubectl --context home-k8s apply --dry-run=server -f`. 같은 PR에서 새로 만드는 네임스페이스나 아직 없는 CRD 때문에 실패하면 FAIL이 아니라 "사유 있는 SKIP"으로 적는다 |
+| 7 | 서버 dry-run | 바뀐 `cluster/*/argocd/applications/*.yaml`와 `cluster/*/manifests/**`를 `kubectl --context home-k8s apply --dry-run=server -f`. 같은 PR에서 새로 만드는 네임스페이스나 아직 없는 CRD 때문에 실패하면 FAIL이 아니라 "사유 있는 SKIP"으로 적는다 |
 | 8 | 값 주석 | 새 values 파일 첫 줄에 chart 이름·버전과 Argo CD 앱 경로 주석이 있는지 |
+| 9 | 클러스터 README | `cluster/<cluster>/` 아래 Application·values의 차트/버전, 앱 추가·삭제, 노출 호스트가 바뀌었으면 같은 PR에서 `cluster/<cluster>/README.md` 명세도 바뀌었는지. 빠졌으면 FAIL |
 
 `kubectl`은 셸 alias(kubecolor)일 수 있으니 `/opt/homebrew/bin/kubectl`을 직접 쓴다. API 서버는 SSH 터널(`home-k8s` context)로만 닿는다. 연결이 안 되면 7번은 SKIP으로 적고 이유를 남긴다.
 
@@ -56,4 +57,4 @@ tools: Bash, Read, Grep, Glob
   gh pr merge <N> --repo jangjaelee/k8s-gitops-monorepo --squash --delete-branch
   ```
 - FAIL이 있으면 머지하지 않는다.
-- 마지막 응답: PR 번호, 각 검사 결과, 머지 여부(머지 커밋 SHA 포함), 머지 후 사람이 해야 할 적용 작업(예: `kubectl apply -f argocd/applications/<app>.yaml`).
+- 마지막 응답: PR 번호, 각 검사 결과, 머지 여부(머지 커밋 SHA 포함), 머지 후 사람이 해야 할 적용 작업(예: `kubectl apply -f cluster/<cluster>/argocd/applications/<app>.yaml`).

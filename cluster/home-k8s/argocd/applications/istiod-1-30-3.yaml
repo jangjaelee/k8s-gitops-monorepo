@@ -12,7 +12,7 @@ spec:
       helm:
         releaseName: istiod-1-30-3
         valueFiles:
-          - $values/helm/istiod-1-30-3/values.yaml
+          - $values/cluster/home-k8s/helm/istiod-1-30-3/values.yaml
     - repoURL: https://github.com/jangjaelee/k8s-gitops-monorepo.git
       targetRevision: main
       ref: values
