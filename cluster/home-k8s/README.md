@@ -185,7 +185,8 @@ sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keyc
 
 ## Kyverno 정책 (Audit)
 
-- 위반해도 막지 않고 PolicyReport만 남깁니다. 시스템 네임스페이스(kube-system, argo-cd, istio-system, cert-manager 등)는 검사하지 않습니다.
+- 위반해도 막지 않고 PolicyReport만 남깁니다. 시스템 네임스페이스(kube-system, argo-cd, istio-system, cert-manager, kyverno 등)는 검사하지 않습니다.
+  - admission: kyverno 앱의 webhook namespaceSelector / background 스캔: 각 정책의 `matchConditions`(차트 `vpolExclude`). ValidatingPolicy의 background 스캔에는 엔진 `resourceFilters`가 적용되지 않아 두 곳에 같은 목록을 둡니다.
 - 정책: Pod Security Standards restricted(baseline 포함) 17개(`helm/kyverno-policies/values.yaml`) + 모범 사례 `disallow-latest-tag`, `require-requests-limits`(`manifests/kyverno-policies/`)
 - 리포트 확인
   ```bash
