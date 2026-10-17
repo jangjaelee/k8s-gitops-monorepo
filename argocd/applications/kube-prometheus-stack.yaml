@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kube-prometheus-stack
+  namespace: argo-cd
+spec:
+  destination:
+    namespace: prometheus-operator
+    server: https://kubernetes.default.svc
+  project: o11y
+  sources:
+    - chart: kube-prometheus-stack
+      helm:
+        valueFiles:
+          - $values/helm/prometheus-operator/values.yaml
+      repoURL: https://prometheus-community.github.io/helm-charts
+      targetRevision: 84.1.0
+    - ref: values
+      repoURL: https://github.com/jangjaelee/k8s-gitops-monorepo.git
+      targetRevision: main
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
