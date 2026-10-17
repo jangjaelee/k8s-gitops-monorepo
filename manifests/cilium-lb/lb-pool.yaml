@@ -1,0 +1,25 @@
+# Cilium LB IPAM 풀 + L2 announcement 정책 (Argo CD app: argocd/applications/cilium-lb.yaml)
+# 공유기 DHCP 풀은 .99 이하. .200–.220은 LoadBalancer 전용.
+apiVersion: cilium.io/v2
+kind: CiliumLoadBalancerIPPool
+metadata:
+  name: home-pool
+spec:
+  blocks:
+    - start: 192.168.50.200
+      stop: 192.168.50.220
+---
+# 노드 NIC는 모두 Wi-Fi: master wlo1, worker wlp3s0/wlp5s0
+# worker-01/02(brcmfmac)는 promisc가 켜져 있어야 VIP ARP에 응답한다 → 노드의 wifi-promisc.service
+apiVersion: cilium.io/v2alpha1
+kind: CiliumL2AnnouncementPolicy
+metadata:
+  name: home-l2
+spec:
+  interfaces:
+    - ^wlo.*
+    - ^wlp.*
+    - ^en.*
+    - ^eth.*
+  externalIPs: true
+  loadBalancerIPs: true
