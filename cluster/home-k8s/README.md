@@ -65,6 +65,7 @@ CNI나 Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 �
 | kyverno-policies | system | kyverno | kyverno/kyverno-policies 3.9.1 + 이 레포 path | v1.19.1 | `helm/kyverno-policies/values.yaml`, `manifests/kyverno-policies/` | PSS restricted 17개 + 모범 사례 2개, **모두 Audit**, `ServerSideDiff=true` |
 | node-local-dns | system | kube-system | deliveryhero/node-local-dns 2.9.2 (OCI) + 이 레포 path | k8s-dns-node-cache 1.26.7 | `helm/node-local-dns/values.yaml`, `manifests/node-local-dns/` | Cilium LRP |
 | vault | system | vault | hashicorp/vault 0.34.1 + 이 레포 path | Vault 2.0.4 | `helm/vault/values.yaml`, `manifests/vault/` | raft 단일 노드, 자동 unseal CronJob |
+| external-secrets | system | external-secrets | external-secrets/external-secrets 2.13.0 + 이 레포 path | v2.13.0 | `helm/external-secrets/values.yaml`, `manifests/external-secrets/` | ClusterSecretStore `vault`, `ServerSideDiff=true` |
 | kube-state-metrics | system | kube-system | prometheus-community/kube-state-metrics 7.4.0 | v2.19.0 | 기본값 | |
 | metric-server | o11y | kube-system | metrics-server/metrics-server 3.13.0 | v0.8.0 | `helm/metrics-server/values.yaml` | release 이름 `metric-server` |
 | kube-prometheus-stack | o11y | prometheus-operator | prometheus-community/kube-prometheus-stack 84.1.0 | operator v0.90.1 | `helm/prometheus-operator/values.yaml` | |
@@ -132,6 +133,7 @@ Client ──► 192.168.50.200 (Cilium LB IPAM, L2 ARP)
    kubectl apply -f $A/kyverno.yaml -f $A/kyverno-policies.yaml   # 정책은 엔진(CRD) 다음
    kubectl apply -f $C/argocd/repositories/deliveryhero-oci.yaml -f $A/node-local-dns.yaml   # Cilium localRedirectPolicies 필요
    kubectl apply -f $A/vault.yaml       # 이후 vault operator init + Secret vault-unseal-keys 생성
+   kubectl apply -f $A/external-secrets.yaml   # Vault 설정(아래 "Vault" 절의 ESO 연동) 후
    kubectl apply -f $A/kube-state-metrics.yaml -f $A/metric-server.yaml -f $A/kube-prometheus-stack.yaml
    ```
 4. 노드 설정: `$C/node-config/wifi-promisc/install.sh <SSH 호스트...>`
@@ -200,6 +202,43 @@ sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keyc
 
 - 접속 `https://vault.awx.kr`. 로그인 방식 Userpass(관리자 정책 `admin`) 또는 Token.
 - auth method, 정책, 사용자는 Vault API로 설정하며 레포에 없습니다. unseal key와 root token도 레포 밖에 보관합니다.
+- External Secrets Operator 연동(Vault API로 설정, 레포 밖). 관리자 토큰으로 `vault-0`에서 실행합니다.
+  ```bash
+  vault secrets enable -path=secret -version=2 kv
+  vault auth enable kubernetes
+  vault write auth/kubernetes/config kubernetes_host=https://kubernetes.default.svc:443
+  vault policy write eso-read - <<'EOP'
+  path "secret/data/*"     { capabilities = ["read"] }
+  path "secret/metadata/*" { capabilities = ["read", "list"] }
+  EOP
+  vault write auth/kubernetes/role/external-secrets \
+    bound_service_account_names=external-secrets bound_service_account_namespaces=external-secrets \
+    token_policies=eso-read token_ttl=1h token_max_ttl=4h
+  ```
+
+## External Secrets (Vault → Secret)
+
+- 비밀값은 Vault `secret/`(KV v2)에 두고, 레포에는 어떤 값을 어떤 Secret으로 만들지만 적은 `ExternalSecret`을 둡니다.
+- 저장소: `ClusterSecretStore/vault`(`manifests/external-secrets/`). ESO는 Vault 역할 `external-secrets`로 읽기만 합니다.
+  ```yaml
+  apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: my-app
+    namespace: my-app
+  spec:
+    refreshInterval: 1h
+    secretStoreRef:
+      kind: ClusterSecretStore
+      name: vault
+    target:
+      name: my-app            # 만들어질 Secret 이름
+    data:
+      - secretKey: password   # Secret의 키
+        remoteRef:
+          key: my-app/db      # Vault secret/my-app/db
+          property: password
+  ```
 
 ## 알려진 제약
 
