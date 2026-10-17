@@ -1,6 +1,9 @@
-# chart: argo/argo-cd 9.5.4 (Argo CD v3.3.8), release argocd, ns argo-cd (Argo CD 미관리, Helm CLI로 설치)
+# chart: argo/argo-cd 10.10.5 (Argo CD v3.5.5), release argocd, ns argo-cd (Argo CD 미관리, Helm CLI로 설치)
 # 접속: https://argocd.awx.kr → Istio Gateway(192.168.50.200, listener https-argocd)에서 TLS 종료 → argocd-server:80
 #       경로는 manifests/argocd/httproute.yaml. CLI는 `argocd login argocd.awx.kr --grpc-web`
+# 차트 10.x부터 global.networkPolicy.create 기본값 true → 컴포넌트별 NetworkPolicy(Ingress만) 생성.
+# argocd-server는 모든 출처 허용이라 Istio Gateway(istio-system) → argocd-server:80 경로는 막히지 않는다.
+# redis·repo-server·dex는 Argo CD 내부 컴포넌트에서만 접근 가능. metrics 포트는 모든 네임스페이스 허용.
 configs:
   params:
     server.insecure: true               # TLS는 Gateway가 종료하므로 argocd-server는 평문 HTTP로 응답

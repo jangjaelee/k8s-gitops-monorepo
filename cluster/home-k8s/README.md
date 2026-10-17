@@ -14,7 +14,7 @@
 | Kubernetes | v1.36.0 |
 | 컨테이너 런타임 | containerd 2.3.6 |
 | CNI | Cilium 1.20.2 — kube-proxy 대체, VXLAN, LB IPAM + L2 announcement, Local Redirect Policy |
-| GitOps | Argo CD v3.3.8 (chart argo-cd 9.5.4, `https://argocd.awx.kr`, Google 로그인) |
+| GitOps | Argo CD v3.5.5 (chart argo-cd 10.10.5, `https://argocd.awx.kr`, Google 로그인) |
 | Service mesh | Istio 1.30.3 sidecar 모드 + istio-cni, revision `1-30-3`(tag `default`) |
 | Ingress | Gateway API v1.5.1 (Istio 구현), Gateway `istio-system/istio-gateway` |
 | 인증서 | cert-manager v1.20.2 + 사설 CA(`ClusterIssuer/homelab-ca`) |
@@ -42,7 +42,7 @@ CNI나 Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 �
 | Release | 네임스페이스 | 차트 | 앱 버전 | values |
 |---|---|---|---|---|
 | cilium | kube-system | cilium/cilium 1.20.2 | 1.20.2 | `helm/cilium/values.yaml` |
-| argocd | argo-cd | argo/argo-cd 9.5.4 | v3.3.8 | `helm/argocd/values.yaml` |
+| argocd | argo-cd | argo/argo-cd 10.10.5 | v3.5.5 | `helm/argocd/values.yaml` |
 
 ### Argo CD Application
 
@@ -106,7 +106,7 @@ Client ──► 192.168.50.200 (Cilium LB IPAM, L2 ARP)
      ```bash
      helm upgrade cilium cilium/cilium -n kube-system --version 1.20.2 -f cluster/home-k8s/helm/cilium/values.yaml --force-conflicts --wait
      kubectl -n kube-system rollout restart ds/cilium     # ConfigMap만 바뀐 경우
-     helm upgrade argocd argo/argo-cd -n argo-cd --version 9.5.4 -f cluster/home-k8s/helm/argocd/values.yaml --force-conflicts --wait
+     helm upgrade argocd argo/argo-cd -n argo-cd --version 10.10.5 -f cluster/home-k8s/helm/argocd/values.yaml --force-conflicts --wait
      ```
      버전을 올릴 때는 `--version`, values 파일 첫 줄 주석, 이 문서를 함께 바꿉니다. Argo CD 업그레이드는 Helm hook 대기 때문에 20분쯤 걸립니다.
 
@@ -115,7 +115,7 @@ Client ──► 192.168.50.200 (Cilium LB IPAM, L2 ARP)
 레포 루트에서 실행합니다(`C=cluster/home-k8s`).
 
 1. Cilium: `helm install cilium cilium/cilium -n kube-system --version 1.20.2 -f $C/helm/cilium/values.yaml`
-2. Argo CD: `helm install argocd argo/argo-cd -n argo-cd --create-namespace --version 9.5.4 -f $C/helm/argocd/values.yaml`
+2. Argo CD: `helm install argocd argo/argo-cd -n argo-cd --create-namespace --version 10.10.5 -f $C/helm/argocd/values.yaml`
 3. Application 등록 순서
    ```bash
    A=$C/argocd/applications
@@ -177,6 +177,8 @@ sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keyc
 ## Argo CD
 
 - 접속 `https://argocd.awx.kr`. CLI는 Gateway가 HTTP/1.1로 받으므로 `argocd login argocd.awx.kr --grpc-web`.
+- 차트 10.x 기본값으로 컴포넌트별 NetworkPolicy(Ingress)가 생깁니다. argocd-server는 모든 출처 허용, redis·repo-server·dex는 Argo CD 내부에서만 접근합니다.
+- v3.5부터 repo-server가 Helm v4로 차트를 렌더링합니다.
 - Google 로그인: OIDC 직접 연동(Dex 미사용). OAuth 클라이언트는 GCP 프로젝트 `alex-space-0001`, 동의 화면 Testing(테스트 사용자만 로그인).
 - client secret은 레포 밖 Secret `argo-cd/argocd-oidc-google`(키 `clientSecret`, 라벨 `app.kubernetes.io/part-of=argocd`)에 둡니다.
   ```bash
