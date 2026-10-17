@@ -11,7 +11,7 @@ spec:
     path: manifests/gateways
   destination:
     server: https://kubernetes.default.svc
-    namespace: gateways
+    namespace: istio-system
   syncPolicy:
     automated:
       prune: true

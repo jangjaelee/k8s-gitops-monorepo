@@ -1,15 +1,11 @@
 # Cilium LB IPAM(192.168.50.201) → Service(LoadBalancer) → Istio Gateway Pod
-# Istio가 이 Gateway를 보고 Deployment·Service(istio-gateway-istio)를 자동 생성한다.
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: gateways
----
+# Istio가 이 Gateway를 보고 istio-system에 Deployment·Service(istio-gateway-istio)를 자동 생성한다.
+# 네임스페이스 istio-system은 istio-base/istiod 앱이 만든다(CreateNamespace).
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
   name: istio-gateway
-  namespace: gateways
+  namespace: istio-system
 spec:
   gatewayClassName: istio
   infrastructure:
