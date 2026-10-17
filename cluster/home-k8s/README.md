@@ -61,7 +61,8 @@ CNI나 Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 �
 | gateways | system | istio-system | 이 레포 path @ main | proxyv2 1.30.3 | `manifests/gateways/` | Gateway, 인증서, HTTP→HTTPS 리다이렉트 |
 | argocd-config | system | argo-cd | 이 레포 path @ main | — | `manifests/argocd/` | HTTPRoute `argocd.awx.kr` |
 | argo-rollouts | system | argo-rollouts | argo/argo-rollouts 2.43.8 | v1.10.1 | `helm/argo-rollouts/values.yaml` | Gateway API 플러그인 v0.17.0 |
-| kyverno | system | kyverno | kyverno/kyverno 3.9.1 | v1.19.1 | `helm/kyverno/values.yaml` | 엔진만, `ServerSideDiff=true` |
+| kyverno | system | kyverno | kyverno/kyverno 3.9.1 | v1.19.1 | `helm/kyverno/values.yaml` | 엔진, `ServerSideDiff=true` |
+| kyverno-policies | system | kyverno | kyverno/kyverno-policies 3.9.1 + 이 레포 path | v1.19.1 | `helm/kyverno-policies/values.yaml`, `manifests/kyverno-policies/` | PSS restricted 17개 + 모범 사례 2개, **모두 Audit**, `ServerSideDiff=true` |
 | node-local-dns | system | kube-system | deliveryhero/node-local-dns 2.9.2 (OCI) + 이 레포 path | k8s-dns-node-cache 1.26.7 | `helm/node-local-dns/values.yaml`, `manifests/node-local-dns/` | Cilium LRP |
 | vault | system | vault | hashicorp/vault 0.34.1 + 이 레포 path | Vault 2.0.4 | `helm/vault/values.yaml`, `manifests/vault/` | raft 단일 노드, 자동 unseal CronJob |
 | kube-state-metrics | system | kube-system | prometheus-community/kube-state-metrics 7.4.0 | v2.19.0 | 기본값 | |
@@ -128,7 +129,7 @@ Client ──► 192.168.50.200 (Cilium LB IPAM, L2 ARP)
    kubectl apply -f $A/gateways.yaml
    kubectl apply -f $A/argocd-config.yaml
    kubectl apply -f $A/argo-rollouts.yaml
-   kubectl apply -f $A/kyverno.yaml
+   kubectl apply -f $A/kyverno.yaml -f $A/kyverno-policies.yaml   # 정책은 엔진(CRD) 다음
    kubectl apply -f $C/argocd/repositories/deliveryhero-oci.yaml -f $A/node-local-dns.yaml   # Cilium localRedirectPolicies 필요
    kubectl apply -f $A/vault.yaml       # 이후 vault operator init + Secret vault-unseal-keys 생성
    kubectl apply -f $A/kube-state-metrics.yaml -f $A/metric-server.yaml -f $A/kube-prometheus-stack.yaml
@@ -181,6 +182,17 @@ sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keyc
   kubectl -n argo-cd label secret argocd-oidc-google app.kubernetes.io/part-of=argocd
   ```
 - RBAC: `policy.default`는 빈 값(권한 없음). 관리자는 `helm/argocd/values.yaml`의 `policy.csv`에 이메일로 추가합니다.
+
+## Kyverno 정책 (Audit)
+
+- 위반해도 막지 않고 PolicyReport만 남깁니다. 시스템 네임스페이스(kube-system, argo-cd, istio-system, cert-manager 등)는 검사하지 않습니다.
+- 정책: Pod Security Standards restricted(baseline 포함) 17개(`helm/kyverno-policies/values.yaml`) + 모범 사례 `disallow-latest-tag`, `require-requests-limits`(`manifests/kyverno-policies/`)
+- 리포트 확인
+  ```bash
+  kubectl get policyreport -A                                  # 네임스페이스별 pass/fail 요약
+  kubectl get policyreport -n <ns> -o yaml | yq '.results[] | select(.result=="fail") | [.policy, .resources[0].name, .message]'
+  ```
+- 차단 전환은 정책 단위로 합니다: 차트 정책은 values의 `validationFailureActionByPolicy`, 직접 만든 정책은 `validationActions: [Deny]`.
 
 ## Vault
 

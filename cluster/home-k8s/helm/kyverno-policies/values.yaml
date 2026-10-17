@@ -1,0 +1,10 @@
+# chart: kyverno/kyverno-policies 3.9.1 (Kyverno v1.19.1)  (Argo CD app: argocd/applications/kyverno-policies.yaml)
+# Pod Security Standards 정책 모음. 모두 Audit(위반해도 막지 않고 PolicyReport만 남김)로 시작한다.
+# 리포트 확인: kubectl get policyreport -A  /  kubectl get clusterpolicyreport
+# 정책 단위로 Enforce 전환할 때는 validationFailureActionByPolicy를 쓴다.
+# 시스템 네임스페이스는 kyverno 앱 values(helm/kyverno/values.yaml)에서 webhook·resourceFilters로 이미 제외돼 있다.
+
+podSecurityStandard: restricted   # baseline 11개 + restricted 6개 = 17개 (Audit라 현황 파악용으로 넓게)
+policyType: ValidatingPolicy      # CEL 기반 policies.kyverno.io (차트 기본). 레거시 ClusterPolicy는 deprecated
+validationFailureAction: Audit
+background: true                  # 이미 떠 있는 Pod도 주기적으로 검사해 리포트

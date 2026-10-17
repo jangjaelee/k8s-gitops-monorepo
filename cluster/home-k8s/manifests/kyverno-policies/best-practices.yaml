@@ -1,0 +1,59 @@
+# 운영 모범 사례 정책 (Audit). PSS 차트(helm/kyverno-policies)에 없는 것만 둔다.
+# Pod 기준으로 쓰면 Kyverno가 Deployment·StatefulSet·DaemonSet·Job·CronJob 규칙을 자동 생성(autogen)한다.
+# apiVersion은 차트 정책과 같은 v1beta1(CRD storage 버전)을 쓴다.
+apiVersion: policies.kyverno.io/v1beta1
+kind: ValidatingPolicy
+metadata:
+  name: disallow-latest-tag
+  annotations:
+    policies.kyverno.io/title: Disallow Latest Tag
+    policies.kyverno.io/category: Best Practices
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      이미지는 태그(또는 digest)를 명시하고 :latest를 쓰지 않는다. 같은 매니페스트가 시점마다 다른 이미지를 받는 것을 막는다.
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+  validations:
+    - expression: >-
+        object.spec.containers.all(c, c.image.contains('@') ||
+          (c.image.substring(c.image.lastIndexOf('/') + 1).contains(':') && !c.image.endsWith(':latest'))) &&
+        (!has(object.spec.initContainers) || object.spec.initContainers.all(c, c.image.contains('@') ||
+          (c.image.substring(c.image.lastIndexOf('/') + 1).contains(':') && !c.image.endsWith(':latest'))))
+      message: 이미지 태그가 없거나 :latest입니다. 고정 태그나 digest를 쓰세요.
+  validationActions:
+    - Audit
+---
+apiVersion: policies.kyverno.io/v1beta1
+kind: ValidatingPolicy
+metadata:
+  name: require-requests-limits
+  annotations:
+    policies.kyverno.io/title: Require Requests and Memory Limit
+    policies.kyverno.io/category: Best Practices
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      모든 컨테이너에 CPU·메모리 requests와 메모리 limit을 둔다. 스케줄링 근거와 노드 메모리 고갈(OOM) 방지용.
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+  validations:
+    - expression: >-
+        object.spec.containers.all(c, has(c.resources) &&
+          has(c.resources.requests) && 'cpu' in c.resources.requests && 'memory' in c.resources.requests &&
+          has(c.resources.limits) && 'memory' in c.resources.limits)
+      message: 컨테이너에 resources.requests(cpu, memory)와 resources.limits.memory가 필요합니다.
+  validationActions:
+    - Audit
