@@ -29,7 +29,7 @@ Client ──► 192.168.50.200 (Cilium LB IPAM, L2 ARP)
 | LoadBalancer IP | 서비스 |
 |---|---|
 | 192.168.50.200 | Istio Gateway (`istio-system/istio-gateway-istio`) — `home.awx.kr`, `www.home.awx.kr` |
-| 192.168.50.201 | Argo CD (`argo-cd/argocd-server`) |
+| 192.168.50.201 | Argo CD (`argo-cd/argocd-server`) — `argocd.awx.kr`, Google 로그인 |
 | 192.168.50.202–220 | 미사용 (풀 `home-pool`) |
 
 ## 디렉터리
@@ -49,6 +49,7 @@ Client ──► 192.168.50.200 (Cilium LB IPAM, L2 ARP)
 |---|---|---|---|
 | cilium | chart cilium 1.20.2 | `helm/cilium/values.yaml` | Helm CLI |
 | argocd | chart argo-cd 9.5.4 | `helm/argocd/values.yaml` | Helm CLI |
+| argocd-config | Argo CD TLS 인증서 | `manifests/argocd/` | Argo CD |
 | cilium-lb | LB IP 풀, L2 정책 | `manifests/cilium-lb/` | Argo CD |
 | cert-manager | chart cert-manager v1.20.2 | Application inline values | Argo CD |
 | cert-manager-issuers | 사설 CA ClusterIssuer | `manifests/cert-manager-issuers/` | Argo CD |
@@ -96,6 +97,7 @@ Cilium과 Argo CD는 Argo CD로 관리하지 않습니다. CNI나 Argo CD가 망
    kubectl apply -f argocd/applications/istio-cni.yaml
    kubectl apply -f argocd/applications/istiod.yaml
    kubectl apply -f argocd/applications/gateways.yaml
+   kubectl apply -f argocd/applications/argocd-config.yaml
    kubectl apply -f argocd/applications/kube-state-metrics.yaml -f argocd/applications/metric-server.yaml -f argocd/applications/kube-prometheus-stack.yaml
    ```
 
@@ -132,6 +134,16 @@ spec:
 kubectl -n cert-manager get secret homelab-root-ca -o jsonpath='{.data.ca\.crt}' | base64 -d > homelab-root-ca.crt
 sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain homelab-root-ca.crt   # macOS
 ```
+
+## Argo CD Google 로그인
+
+- OIDC 직접 연동(Dex 미사용). OAuth 클라이언트는 GCP 프로젝트 `alex-space-0001`, 동의 화면 Testing(테스트 사용자만 로그인).
+- client secret은 레포 밖 Secret `argo-cd/argocd-oidc-google`(키 `clientSecret`, 라벨 `app.kubernetes.io/part-of=argocd`)에 둡니다.
+  ```bash
+  kubectl -n argo-cd create secret generic argocd-oidc-google --from-literal=clientSecret="$(jq -r .web.client_secret client_secret_*.json)"
+  kubectl -n argo-cd label secret argocd-oidc-google app.kubernetes.io/part-of=argocd
+  ```
+- RBAC: `policy.default`는 빈 값(권한 없음). 관리자는 `helm/argocd/values.yaml`의 `policy.csv`에 이메일로 추가합니다.
 
 ## 알려진 제약
 

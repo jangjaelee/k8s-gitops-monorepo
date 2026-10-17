@@ -1,0 +1,24 @@
+# Argo CD 서버 TLS 인증서 (사설 CA ClusterIssuer homelab-ca)
+# argocd-server는 같은 네임스페이스의 secret argocd-server-tls가 있으면 자동으로 그 인증서를 쓴다(재시작 불필요).
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: argocd-server-tls
+  namespace: argo-cd
+spec:
+  secretName: argocd-server-tls
+  commonName: argocd.awx.kr
+  dnsNames:
+    - argocd.awx.kr
+  ipAddresses:
+    - 192.168.50.201
+  duration: 2160h           # 90일
+  renewBefore: 360h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: homelab-ca
