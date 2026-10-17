@@ -1,0 +1,5 @@
+#!/bin/sh
+# NetworkManager dispatcher: Wi-Fi가 다시 연결되거나 드라이버가 재초기화된 뒤에도 promisc 유지
+IFACE="$1"; ACTION="$2"
+case "$ACTION" in up|reapply) ;; *) exit 0 ;; esac
+case "$IFACE" in wl*) ip link set "$IFACE" promisc on ;; esac

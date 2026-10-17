@@ -1,0 +1,12 @@
+[Unit]
+Description=Enable promiscuous mode on Wi-Fi interfaces (Cilium L2 announcement ARP)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/wifi-promisc.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
