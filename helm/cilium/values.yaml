@@ -1,5 +1,6 @@
 # chart: cilium/cilium 1.20.2 (Argo CD 미관리, Helm CLI로 설치 — CLAUDE.md "Argo CD로 관리하지 않는 것")
-# rev 7 예정(2026-10-17): Istio sidecar용 socketLB.hostNamespaceOnly, cni.exclusive 추가
+# rev 7(2026-10-17): Istio sidecar용 socketLB.hostNamespaceOnly, cni.exclusive
+# rev 8 예정: NodeLocal DNSCache용 localRedirectPolicies.enabled
 cluster:
   name: kubernetes
 cni:
@@ -22,6 +23,8 @@ k8sServicePort: 6443
 kubeProxyReplacement: true
 l2announcements:
   enabled: true
+localRedirectPolicies:
+  enabled: true             # CiliumLocalRedirectPolicy: kube-dns 트래픽을 같은 노드의 node-local-dns Pod로 보낸다
 operator:
   replicas: 1
 routingMode: tunnel
