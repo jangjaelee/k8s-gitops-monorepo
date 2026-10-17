@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: node-local-dns
+  namespace: argo-cd
+spec:
+  project: system
+  sources:
+    - repoURL: ghcr.io/deliveryhero/helm-charts      # OCI (argocd/repositories/deliveryhero-oci.yaml 등록 필요)
+      chart: node-local-dns
+      targetRevision: 2.9.2
+      helm:
+        releaseName: node-local-dns
+        valueFiles:
+          - $values/helm/node-local-dns/values.yaml
+    - repoURL: https://github.com/jangjaelee/k8s-gitops-monorepo.git
+      targetRevision: main
+      ref: values
+    - repoURL: https://github.com/jangjaelee/k8s-gitops-monorepo.git
+      targetRevision: main
+      path: manifests/node-local-dns                  # CiliumLocalRedirectPolicy
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true

@@ -1,0 +1,23 @@
+# kube-dns 서비스로 가는 DNS 트래픽을 같은 노드의 node-local-dns Pod로 리다이렉트 (Cilium localRedirectPolicies.enabled 필요)
+# node-local-dns가 없는 노드는 원래 kube-dns(CoreDNS)로 간다.
+apiVersion: cilium.io/v2
+kind: CiliumLocalRedirectPolicy
+metadata:
+  name: nodelocaldns
+  namespace: kube-system
+spec:
+  redirectFrontend:
+    serviceMatcher:
+      serviceName: kube-dns
+      namespace: kube-system
+  redirectBackend:
+    localEndpointSelector:
+      matchLabels:
+        app.kubernetes.io/name: node-local-dns
+    toPorts:
+      - port: "53"
+        name: dns
+        protocol: UDP
+      - port: "53"
+        name: dns-tcp
+        protocol: TCP

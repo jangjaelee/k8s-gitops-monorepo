@@ -11,6 +11,7 @@
 |---|---|
 | `helm/<release>/values.yaml` | Helm values. 첫 줄 주석에 chart 이름·버전과 연결된 Argo CD 앱을 적는다 |
 | `argocd/applications/<app>.yaml` | Argo CD `Application`. 클러스터에는 `kubectl apply -f`로 등록한다 |
+| `argocd/repositories/<name>.yaml` | Argo CD 저장소 등록 Secret(예: OCI Helm). **공개 저장소만, 인증 정보는 절대 넣지 않는다** |
 | `manifests/<app>/` | Helm이 아닌 일반 매니페스트. `path` 소스 Argo CD 앱이 가리킨다 |
 | `.claude/agents/` | PR 리뷰·머지 에이전트 |
 

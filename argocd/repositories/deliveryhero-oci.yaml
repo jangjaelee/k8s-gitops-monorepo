@@ -1,0 +1,14 @@
+# Argo CD Helm OCI 저장소 등록 (공개 저장소, 인증 정보 없음). kubectl apply로 등록한다.
+# node-local-dns 차트가 OCI(ghcr.io/deliveryhero/helm-charts)로만 배포되어 필요
+apiVersion: v1
+kind: Secret
+metadata:
+  name: repo-deliveryhero-oci
+  namespace: argo-cd
+  labels:
+    argocd.argoproj.io/secret-type: repository
+stringData:
+  name: deliveryhero
+  type: helm
+  url: ghcr.io/deliveryhero/helm-charts
+  enableOCI: "true"
