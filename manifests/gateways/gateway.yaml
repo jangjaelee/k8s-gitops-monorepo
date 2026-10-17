@@ -1,5 +1,6 @@
 # Cilium LB IPAM(192.168.50.200) → Service(LoadBalancer) → Istio Gateway Pod
 # HTTP :80, HTTPS :443(home.awx.kr, www.home.awx.kr — 사설 CA 인증서 certificate.yaml)
+# 호스트 전용 listener: vault.awx.kr(https-vault), argocd.awx.kr(https-argocd)
 # Istio가 이 Gateway를 보고 istio-system에 Deployment·Service(istio-gateway-istio)를 자동 생성한다.
 # 네임스페이스 istio-system은 istio-base/istiod 앱이 만든다(CreateNamespace).
 apiVersion: gateway.networking.k8s.io/v1
@@ -49,3 +50,19 @@ spec:
           selector:
             matchLabels:
               kubernetes.io/metadata.name: vault
+    - name: https-argocd            # argocd.awx.kr 전용 (SNI로 구분, 전용 인증서)
+      hostname: argocd.awx.kr
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: argocd-gateway-tls      # certificate-argocd.yaml
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              kubernetes.io/metadata.name: argo-cd
