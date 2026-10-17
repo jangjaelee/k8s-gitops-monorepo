@@ -20,7 +20,7 @@
 ## 트래픽 흐름
 
 ```
-Client ──► 192.168.50.201 (Cilium LB IPAM, L2 ARP)
+Client ──► 192.168.50.200 (Cilium LB IPAM, L2 ARP)
             └─► Service istio-system/istio-gateway-istio (LoadBalancer, Istio 자동 생성)
                  └─► Gateway istio-system/istio-gateway  (:80 HTTP, :443 HTTPS)
                       └─► HTTPRoute ─► 앱 Pod (istio-proxy sidecar, mTLS)
@@ -28,8 +28,8 @@ Client ──► 192.168.50.201 (Cilium LB IPAM, L2 ARP)
 
 | LoadBalancer IP | 서비스 |
 |---|---|
-| 192.168.50.200 | Argo CD (`argo-cd/argocd-server`) |
-| 192.168.50.201 | Istio Gateway (`istio-system/istio-gateway-istio`) — `home.awx.kr`, `www.home.awx.kr` |
+| 192.168.50.200 | Istio Gateway (`istio-system/istio-gateway-istio`) — `home.awx.kr`, `www.home.awx.kr` |
+| 192.168.50.201 | Argo CD (`argo-cd/argocd-server`) |
 | 192.168.50.202–220 | 미사용 (풀 `home-pool`) |
 
 ## 디렉터리

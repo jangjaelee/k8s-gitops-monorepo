@@ -14,4 +14,4 @@ server:
   service:
     type: LoadBalancer
     annotations:
-      lbipam.cilium.io/ips: "192.168.50.200"   # Cilium LB IPAM 고정 IP
+      lbipam.cilium.io/ips: "192.168.50.201"   # Cilium LB IPAM 고정 IP

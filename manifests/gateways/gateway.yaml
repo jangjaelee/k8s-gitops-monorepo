@@ -1,4 +1,4 @@
-# Cilium LB IPAM(192.168.50.201) → Service(LoadBalancer) → Istio Gateway Pod
+# Cilium LB IPAM(192.168.50.200) → Service(LoadBalancer) → Istio Gateway Pod
 # HTTP :80, HTTPS :443(home.awx.kr, www.home.awx.kr — 사설 CA 인증서 certificate.yaml)
 # Istio가 이 Gateway를 보고 istio-system에 Deployment·Service(istio-gateway-istio)를 자동 생성한다.
 # 네임스페이스 istio-system은 istio-base/istiod 앱이 만든다(CreateNamespace).
@@ -11,7 +11,7 @@ spec:
   gatewayClassName: istio
   infrastructure:
     annotations:
-      lbipam.cilium.io/ips: "192.168.50.201"   # 자동 생성되는 Service에 전달됨
+      lbipam.cilium.io/ips: "192.168.50.200"   # 자동 생성되는 Service에 전달됨
   listeners:
     - name: http
       port: 80
