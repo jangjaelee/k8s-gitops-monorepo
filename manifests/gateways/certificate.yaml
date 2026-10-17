@@ -1,0 +1,25 @@
+# Gateway HTTPS 인증서 (사설 CA ClusterIssuer homelab-ca, manifests/cert-manager-issuers/)
+# Gateway와 같은 네임스페이스(istio-system)에 secret을 만들어 listener가 바로 참조한다.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: istio-gateway-tls
+  namespace: istio-system
+spec:
+  secretName: istio-gateway-tls
+  commonName: home.awx.kr
+  dnsNames:
+    - home.awx.kr
+    - www.home.awx.kr
+  ipAddresses:
+    - 192.168.50.201
+  duration: 2160h           # 90일
+  renewBefore: 360h         # 15일 전 갱신
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: homelab-ca
