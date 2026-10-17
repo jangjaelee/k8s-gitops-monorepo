@@ -24,6 +24,8 @@ spec:
             runAsNonRoot: true
             runAsUser: 100
             runAsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
           containers:
             - name: unseal
               image: hashicorp/vault:2.0.4

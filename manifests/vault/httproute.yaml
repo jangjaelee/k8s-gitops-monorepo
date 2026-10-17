@@ -1,4 +1,5 @@
 # https://vault.awx.kr → Istio Gateway(192.168.50.200, listener https-vault) → Service vault:8200
+# group/kind/weight/matches는 API 서버 기본값을 그대로 적어 둔다(없으면 Argo CD가 OutOfSync로 봄).
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -6,11 +7,21 @@ metadata:
   namespace: vault
 spec:
   parentRefs:
-    - name: istio-gateway
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: istio-gateway
       namespace: istio-system
       sectionName: https-vault
-  hostnames: ["vault.awx.kr"]
+  hostnames:
+    - vault.awx.kr
   rules:
-    - backendRefs:
-        - name: vault
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: vault
           port: 8200
+          weight: 1
