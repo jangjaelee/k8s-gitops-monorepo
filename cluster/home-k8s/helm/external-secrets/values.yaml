@@ -1,0 +1,28 @@
+# chart: external-secrets/external-secrets 2.13.0 (ESO v2.13.0)  (Argo CD app: argocd/applications/external-secrets.yaml)
+# Vault(KV v2 secret/)의 값을 Kubernetes Secret으로 동기화한다. 저장소 연결은 manifests/external-secrets/cluster-secret-store.yaml
+# cert-controller가 webhook 인증서·caBundle을 런타임에 채운다 → 앱에 ServerSideDiff=true
+installCRDs: true
+
+# 실사용 기준 작게(홈랩). Kyverno require-requests-limits
+resources:
+  requests:
+    cpu: 10m
+    memory: 64Mi
+  limits:
+    memory: 256Mi
+
+webhook:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 128Mi
+
+certController:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 128Mi
