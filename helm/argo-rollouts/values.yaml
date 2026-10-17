@@ -4,6 +4,13 @@ keepCRDs: true                 # 앱을 지워도 Rollout CRD(와 Rollout 리소
 
 controller:
   replicas: 1                  # 홈랩 단일 인스턴스 (기본 2)
+  # Gateway API 트래픽 라우터 플러그인 (argoproj-labs/rollouts-plugin-trafficrouter-gatewayapi v0.17.0)
+  # controller가 시작할 때 내려받는다. sha256은 GitHub 릴리스 asset digest와 일치 확인.
+  # Rollout에서 strategy.canary.trafficRouting.plugins."argoproj-labs/gatewayAPI".httpRoute 로 HTTPRoute 가중치를 조절한다.
+  trafficRouterPlugins:
+    - name: argoproj-labs/gatewayAPI
+      location: https://github.com/argoproj-labs/rollouts-plugin-trafficrouter-gatewayapi/releases/download/v0.17.0/gatewayapi-plugin-linux-amd64
+      sha256: 1904ca787d33107c140521899d61fff030ee75d99908bd175fca5a4647759061
 
 # 쓰는 트래픽 라우터만 권한을 준다 (Istio, Gateway API). 나머지 제공자 권한은 끈다.
 providerRBAC:

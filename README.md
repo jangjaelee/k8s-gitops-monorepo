@@ -59,7 +59,7 @@ Client ──► 192.168.50.200 (Cilium LB IPAM, L2 ARP)
 | istio-cni | chart cni 1.30.3 | `helm/istio-cni/values.yaml` | Argo CD |
 | istiod-1-30-3 | chart istiod 1.30.3, revision `1-30-3` | `helm/istiod-1-30-3/values.yaml` | Argo CD |
 | gateways | Gateway API Gateway, 인증서 | `manifests/gateways/` | Argo CD |
-| argo-rollouts | chart argo-rollouts 2.43.8 (v1.10.1) | `helm/argo-rollouts/values.yaml` | Argo CD |
+| argo-rollouts | chart argo-rollouts 2.43.8 (v1.10.1) + Gateway API 플러그인 v0.17.0 | `helm/argo-rollouts/values.yaml` | Argo CD |
 | kube-prometheus-stack | chart 84.1.0 | `helm/prometheus-operator/values.yaml` | Argo CD |
 | kube-state-metrics | chart 7.4.0 | 기본값 | Argo CD |
 | metric-server | chart metrics-server 3.13.0 | Application parameters | Argo CD |
