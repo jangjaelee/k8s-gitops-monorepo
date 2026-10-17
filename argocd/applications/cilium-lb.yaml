@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cilium-lb
+  namespace: argo-cd
+spec:
+  project: system
+  source:
+    repoURL: https://github.com/jangjaelee/k8s-gitops-monorepo.git
+    targetRevision: main
+    path: manifests/cilium-lb
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: false          # 풀이 지워지면 모든 LB IP가 회수되므로 자동 삭제는 하지 않는다
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
