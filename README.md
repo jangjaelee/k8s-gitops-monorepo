@@ -52,6 +52,7 @@ Client ──► 192.168.50.200 (Cilium LB IPAM, L2 ARP)
 | argocd | chart argo-cd 9.5.4 | `helm/argocd/values.yaml` | Helm CLI |
 | argocd-config | Argo CD TLS 인증서 | `manifests/argocd/` | Argo CD |
 | cilium-lb | LB IP 풀, L2 정책 | `manifests/cilium-lb/` | Argo CD |
+| gateway-api-crds | Gateway API CRD v1.5.1 standard | 공식 저장소 `config/crd/standard`(태그 v1.5.1) | Argo CD |
 | cert-manager | chart cert-manager v1.20.2 | Application inline values | Argo CD |
 | cert-manager-issuers | 사설 CA ClusterIssuer | `manifests/cert-manager-issuers/` | Argo CD |
 | istio-base | chart base 1.30.1 | `helm/istio-base/values.yaml` | Argo CD |
@@ -87,10 +88,11 @@ Cilium과 Argo CD는 Argo CD로 관리하지 않습니다. CNI나 Argo CD가 망
 ## 새 클러스터에 처음부터 올릴 때
 
 1. Cilium: `helm install cilium cilium/cilium -n kube-system --version 1.20.2 -f helm/cilium/values.yaml`
-2. Gateway API CRD v1.5.1 (standard channel)
+2. Argo CD 설치 후 `gateway-api-crds` 앱으로 Gateway API CRD v1.5.1 설치 (4번 첫 줄)
 3. Argo CD: `helm install argocd argo/argo-cd -n argo-cd --create-namespace --version 9.5.4 -f helm/argocd/values.yaml`
 4. Application 등록 순서
    ```bash
+   kubectl apply -f argocd/applications/gateway-api-crds.yaml
    kubectl apply -f argocd/applications/cilium-lb.yaml
    kubectl apply -f argocd/applications/cert-manager.yaml
    kubectl apply -f argocd/applications/cert-manager-issuers.yaml
