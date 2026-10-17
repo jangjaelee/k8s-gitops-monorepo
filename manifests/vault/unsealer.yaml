@@ -1,0 +1,59 @@
+# Vault 자동 unseal (클러스터 내부, 클라우드 KMS 미사용)
+# Secret vault-unseal-keys(키: unseal-key-1 … unseal-key-N)는 `vault operator init` 후 kubectl로 직접 만든다. 레포에 넣지 않는다.
+# 1분마다 vault-0 상태를 확인해 sealed이면 키를 차례로 넣는다. Secret이 없으면(초기화 전) 아무것도 하지 않는다.
+# 보안 절충: 키가 etcd에 있으므로 클러스터 관리자 권한이 있으면 Vault를 열 수 있다(홈랩 선택).
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: vault-unsealer
+  namespace: vault
+spec:
+  schedule: "* * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 50
+      template:
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 100
+            runAsGroup: 1000
+          containers:
+            - name: unseal
+              image: hashicorp/vault:2.0.4
+              env:
+                - name: VAULT_ADDR
+                  value: http://vault-0.vault-internal.vault.svc:8200
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -u
+                  ls /keys/unseal-key-* >/dev/null 2>&1 || { echo "no unseal keys yet (not initialized?)"; exit 0; }
+                  vault status >/dev/null 2>&1; rc=$?
+                  [ "$rc" -eq 0 ] && { echo "unsealed"; exit 0; }
+                  [ "$rc" -ne 2 ] && { echo "vault unreachable (rc=$rc)"; exit 0; }
+                  for k in /keys/unseal-key-*; do
+                    vault operator unseal "$(cat "$k")" >/dev/null || true
+                    vault status >/dev/null 2>&1 && { echo "unsealed by unsealer"; exit 0; }
+                  done
+                  echo "still sealed"; exit 1
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ["ALL"] }
+              resources:
+                requests: { cpu: 10m, memory: 32Mi }
+                limits: { memory: 64Mi }
+              volumeMounts:
+                - { name: keys, mountPath: /keys, readOnly: true }
+          volumes:
+            - name: keys
+              secret:
+                secretName: vault-unseal-keys
+                optional: true
