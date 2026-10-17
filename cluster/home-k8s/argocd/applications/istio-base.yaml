@@ -12,7 +12,7 @@ spec:
       helm:
         releaseName: istio-base
         valueFiles:
-          - $values/helm/istio-base/values.yaml
+          - $values/cluster/home-k8s/helm/istio-base/values.yaml
     - repoURL: https://github.com/jangjaelee/k8s-gitops-monorepo.git
       targetRevision: main
       ref: values

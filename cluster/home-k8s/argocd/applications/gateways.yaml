@@ -1,17 +1,17 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: cert-manager-issuers
+  name: gateways
   namespace: argo-cd
 spec:
   project: system
   source:
     repoURL: https://github.com/jangjaelee/k8s-gitops-monorepo.git
     targetRevision: main
-    path: manifests/cert-manager-issuers
+    path: cluster/home-k8s/manifests/gateways
   destination:
     server: https://kubernetes.default.svc
-    namespace: cert-manager
+    namespace: istio-system
   syncPolicy:
     automated:
       prune: true

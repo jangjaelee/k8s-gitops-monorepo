@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/jangjaelee/k8s-gitops-monorepo.git
     targetRevision: main
-    path: manifests/cilium-lb
+    path: cluster/home-k8s/manifests/cilium-lb
   destination:
     server: https://kubernetes.default.svc
   syncPolicy:

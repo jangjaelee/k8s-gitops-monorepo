@@ -12,13 +12,13 @@ spec:
       helm:
         releaseName: node-local-dns
         valueFiles:
-          - $values/helm/node-local-dns/values.yaml
+          - $values/cluster/home-k8s/helm/node-local-dns/values.yaml
     - repoURL: https://github.com/jangjaelee/k8s-gitops-monorepo.git
       targetRevision: main
       ref: values
     - repoURL: https://github.com/jangjaelee/k8s-gitops-monorepo.git
       targetRevision: main
-      path: manifests/node-local-dns                  # CiliumLocalRedirectPolicy
+      path: cluster/home-k8s/manifests/node-local-dns                  # CiliumLocalRedirectPolicy
   destination:
     server: https://kubernetes.default.svc
     namespace: kube-system

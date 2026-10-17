@@ -15,7 +15,7 @@ spec:
       helm:
         releaseName: kyverno
         valueFiles:
-          - $values/helm/kyverno/values.yaml
+          - $values/cluster/home-k8s/helm/kyverno/values.yaml
     - repoURL: https://github.com/jangjaelee/k8s-gitops-monorepo.git
       targetRevision: main
       ref: values
