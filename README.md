@@ -28,9 +28,8 @@ Client ──► 192.168.50.200 (Cilium LB IPAM, L2 ARP)
 
 | LoadBalancer IP | 서비스 |
 |---|---|
-| 192.168.50.200 | Istio Gateway (`istio-system/istio-gateway-istio`) — `home.awx.kr`, `www.home.awx.kr`, `vault.awx.kr` |
-| 192.168.50.201 | Argo CD (`argo-cd/argocd-server`) — `argocd.awx.kr`, Google 로그인 |
-| 192.168.50.202–220 | 미사용 (풀 `home-pool`) |
+| 192.168.50.200 | Istio Gateway (`istio-system/istio-gateway-istio`) — `home.awx.kr`, `www.home.awx.kr`, `vault.awx.kr`, `argocd.awx.kr`(Google 로그인) |
+| 192.168.50.201–220 | 미사용 (풀 `home-pool`) |
 
 ## 디렉터리
 
@@ -51,7 +50,7 @@ Client ──► 192.168.50.200 (Cilium LB IPAM, L2 ARP)
 |---|---|---|---|
 | cilium | chart cilium 1.20.2 | `helm/cilium/values.yaml` | Helm CLI |
 | argocd | chart argo-cd 9.5.4 | `helm/argocd/values.yaml` | Helm CLI |
-| argocd-config | Argo CD TLS 인증서 | `manifests/argocd/` | Argo CD |
+| argocd-config | Argo CD HTTPRoute(argocd.awx.kr → Gateway) | `manifests/argocd/` | Argo CD |
 | cilium-lb | LB IP 풀, L2 정책 | `manifests/cilium-lb/` | Argo CD |
 | local-path-provisioner | StorageClass `local-path`(기본, Retain) — GitHub 차트 v0.0.37 | `helm/local-path-provisioner/values.yaml` | Argo CD |
 | gateway-api-crds | Gateway API CRD v1.5.1 standard | 공식 저장소 `config/crd/standard`(태그 v1.5.1) | Argo CD |
