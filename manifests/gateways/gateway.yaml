@@ -7,6 +7,8 @@ kind: Gateway
 metadata:
   name: istio-gateway
   namespace: istio-system
+  labels:
+    istio.io/rev: 1-30-3          # 이 Gateway를 관리할 Istio control plane 리비전
 spec:
   gatewayClassName: istio
   infrastructure:
