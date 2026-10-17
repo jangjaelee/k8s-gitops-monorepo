@@ -1,0 +1,47 @@
+# chart: hashicorp/vault 0.34.1 (Vault 2.0.4)  (Argo CD app: argocd/applications/vault.yaml)
+# 단일 노드 raft 저장소(PVC local-path). TLS는 Istio Gateway(vault.awx.kr)에서 종료하고, 클러스터 내부는 HTTP.
+# unseal은 manifests/vault/unsealer.yaml(CronJob)이 Secret vault-unseal-keys로 자동 처리한다(Secret은 레포에 없음).
+global:
+  enabled: true
+
+injector:
+  enabled: false                # 시크릿 주입은 External Secrets Operator로 한다
+
+server:
+  standalone:
+    enabled: true
+    config: |-
+      ui = true
+      api_addr     = "https://vault.awx.kr"
+      cluster_addr = "http://vault-0.vault-internal:8201"
+
+      listener "tcp" {
+        tls_disable     = 1
+        address         = "[::]:8200"
+        cluster_address = "[::]:8201"
+        # Gateway가 넘기는 X-Forwarded-For를 신뢰(클러스터 Pod 대역)
+        x_forwarded_for_authorized_addrs = "10.0.0.0/16"
+      }
+
+      storage "raft" {
+        path    = "/vault/data"
+        node_id = "vault-0"
+      }
+
+      disable_mlock = true
+  dataStorage:
+    enabled: true
+    size: 5Gi
+    storageClass: local-path
+  auditStorage:
+    enabled: false
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+ui:
+  enabled: true
+  serviceType: ClusterIP        # 외부 노출은 Gateway HTTPRoute(vault.awx.kr)
