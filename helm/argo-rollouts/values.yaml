@@ -1,0 +1,26 @@
+# chart: argo/argo-rollouts 2.43.8 (Argo Rollouts v1.10.1)  (Argo CD app: argocd/applications/argo-rollouts.yaml)
+installCRDs: true
+keepCRDs: true                 # 앱을 지워도 Rollout CRD(와 Rollout 리소스)는 남긴다
+
+controller:
+  replicas: 1                  # 홈랩 단일 인스턴스 (기본 2)
+
+# 쓰는 트래픽 라우터만 권한을 준다 (Istio, Gateway API). 나머지 제공자 권한은 끈다.
+providerRBAC:
+  enabled: true
+  providers:
+    istio: true
+    gatewayAPI: true           # 다음 단계 Gateway API 플러그인이 HTTPRoute를 수정할 권한
+    smi: false
+    ambassador: false
+    awsLoadBalancerController: false
+    awsAppMesh: false
+    traefik: false
+    apisix: false
+    contour: false
+    glooPlatform: false
+
+# 대시보드는 인증이 없으므로 외부(LB/Gateway)에 노출하지 않는다.
+# 접속: kubectl -n argo-rollouts port-forward svc/argo-rollouts-dashboard 3100:3100 → http://localhost:3100
+dashboard:
+  enabled: true
