@@ -20,6 +20,10 @@ spec:
         apiVersions: [v1]
         operations: [CREATE, UPDATE]
         resources: [pods]
+  matchConditions:
+    # 시스템 네임스페이스 제외(helm/kyverno-policies/values.yaml의 vpolExclude와 같은 목록). background 스캔에도 적용된다
+    - name: exclude-namespaces
+      expression: "!(request.namespace in ['kube-system', 'kube-public', 'kube-node-lease', 'cilium-secrets', 'argo-cd', 'istio-system', 'cert-manager', 'local-path-storage', 'kyverno'])"
   validations:
     - expression: >-
         object.spec.containers.all(c, c.image.contains('@') ||
@@ -49,6 +53,10 @@ spec:
         apiVersions: [v1]
         operations: [CREATE, UPDATE]
         resources: [pods]
+  matchConditions:
+    # 시스템 네임스페이스 제외(helm/kyverno-policies/values.yaml의 vpolExclude와 같은 목록). background 스캔에도 적용된다
+    - name: exclude-namespaces
+      expression: "!(request.namespace in ['kube-system', 'kube-public', 'kube-node-lease', 'cilium-secrets', 'argo-cd', 'istio-system', 'cert-manager', 'local-path-storage', 'kyverno'])"
   validations:
     - expression: >-
         object.spec.containers.all(c, has(c.resources) &&
