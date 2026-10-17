@@ -25,7 +25,8 @@ spec:
       tls:
         mode: Terminate
         certificateRefs:
-          - kind: Secret
+          - group: ""                     # API 서버 기본값과 맞춤(없으면 Argo CD가 OutOfSync로 봄)
+            kind: Secret
             name: istio-gateway-tls       # certificate.yaml (cert-manager)
       allowedRoutes:
         namespaces:
