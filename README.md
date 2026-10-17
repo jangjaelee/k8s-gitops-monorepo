@@ -74,7 +74,13 @@ Cilium과 Argo CD는 Argo CD로 관리하지 않습니다. CNI나 Argo CD가 망
 3. 머지 후 적용합니다.
    - 새 Application: `kubectl apply -f argocd/applications/<app>.yaml`
    - 기존 Argo CD 앱의 values·매니페스트 변경: Argo CD가 main을 자동 동기화
-   - Cilium·Argo CD: README "구성 요소"의 Helm CLI 명령 (각 values 파일 첫 줄 주석 참고)
+   - Cilium·Argo CD (Helm CLI)
+     ```bash
+     helm upgrade cilium cilium/cilium -n kube-system --version 1.20.2 -f helm/cilium/values.yaml --force-conflicts --wait
+     kubectl -n kube-system rollout restart ds/cilium     # ConfigMap만 바뀐 경우
+     helm upgrade argocd argo/argo-cd -n argo-cd --version 9.5.4 -f helm/argocd/values.yaml --force-conflicts --wait
+     ```
+     버전을 올릴 때는 `--version`과 values 파일 첫 줄 주석을 함께 바꿉니다.
 
 ## 새 클러스터에 처음부터 올릴 때
 
