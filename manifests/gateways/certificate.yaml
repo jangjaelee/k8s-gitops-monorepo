@@ -12,7 +12,7 @@ spec:
     - home.awx.kr
     - www.home.awx.kr
   ipAddresses:
-    - 192.168.50.201
+    - 192.168.50.200
   duration: 2160h           # 90일
   renewBefore: 360h         # 15일 전 갱신
   privateKey:
