@@ -1,0 +1,18 @@
+# chart: rancher/local-path-provisioner v0.0.37 (GitHub deploy/chart, 태그 v0.0.37)  (Argo CD app: argocd/applications/local-path-provisioner.yaml)
+# 노드 로컬 디스크(/opt/local-path-provisioner)를 PV로 쓰는 StorageClass `local-path`. Vault 등 상태 저장 앱용.
+# 주의: PV는 만들어진 노드에 묶인다(노드가 죽으면 그 데이터에 접근 불가). 백업은 앱 쪽에서 한다.
+storageClass:
+  create: true
+  name: local-path
+  defaultClass: true            # 클러스터에 다른 StorageClass가 없으므로 기본으로 지정
+  reclaimPolicy: Retain         # PVC를 지워도 데이터(PV)는 남긴다 — 실수로 Vault 데이터가 지워지지 않게
+  volumeBindingMode: WaitForFirstConsumer
+
+helperImage:
+  repository: docker.io/library/busybox
+  tag: "1.37.0"                 # latest 대신 고정
+
+nodePathMap:
+  - node: DEFAULT_PATH_FOR_NON_LISTED_NODES
+    paths:
+      - /opt/local-path-provisioner
