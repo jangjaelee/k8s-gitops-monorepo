@@ -53,7 +53,7 @@ CNI나 Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 �
 | gateway-api-crds | system | (cluster) | github.com/kubernetes-sigs/gateway-api `config/crd/standard` @ v1.5.1 | v1.5.1 | — | prune 끔 |
 | cilium-lb | system | (cluster) | 이 레포 path @ main | — | `manifests/cilium-lb/` | LB IP 풀 .200–.220, L2 정책 |
 | local-path-provisioner | system | local-path-storage | github.com/rancher/local-path-provisioner `deploy/chart` @ v0.0.37 | v0.0.37 | `helm/local-path-provisioner/values.yaml` | 기본 StorageClass |
-| cert-manager | system | cert-manager | jetstack/cert-manager v1.20.2 | v1.20.2 | Application inline values | |
+| cert-manager | system | cert-manager | jetstack/cert-manager v1.20.2 | v1.20.2 | `helm/cert-manager/values.yaml` | `crds.enabled`, `crds.keep` |
 | cert-manager-issuers | system | cert-manager | 이 레포 path @ main | — | `manifests/cert-manager-issuers/` | 사설 CA `homelab-ca` |
 | istio-base | system | istio-system | istio/base 1.30.3 | 1.30.3 | `helm/istio-base/values.yaml` | `defaultRevision: 1-30-3` |
 | istio-cni | system | istio-system | istio/cni 1.30.3 | 1.30.3 | `helm/istio-cni/values.yaml` | Cilium 체이닝 |
@@ -66,7 +66,7 @@ CNI나 Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 �
 | node-local-dns | system | kube-system | deliveryhero/node-local-dns 2.9.2 (OCI) + 이 레포 path | k8s-dns-node-cache 1.26.7 | `helm/node-local-dns/values.yaml`, `manifests/node-local-dns/` | Cilium LRP |
 | vault | system | vault | hashicorp/vault 0.34.1 + 이 레포 path | Vault 2.0.4 | `helm/vault/values.yaml`, `manifests/vault/` | raft 단일 노드, 자동 unseal CronJob |
 | kube-state-metrics | system | kube-system | prometheus-community/kube-state-metrics 7.4.0 | v2.19.0 | 기본값 | |
-| metric-server | o11y | kube-system | metrics-server/metrics-server 3.13.0 | v0.8.0 | Application parameters | |
+| metric-server | o11y | kube-system | metrics-server/metrics-server 3.13.0 | v0.8.0 | `helm/metrics-server/values.yaml` | release 이름 `metric-server` |
 | kube-prometheus-stack | o11y | prometheus-operator | prometheus-community/kube-prometheus-stack 84.1.0 | operator v0.90.1 | `helm/prometheus-operator/values.yaml` | |
 
 ### Argo CD 저장소 등록
