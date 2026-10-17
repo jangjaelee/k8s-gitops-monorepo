@@ -1,0 +1,7 @@
+# chart: istio/cni 1.30.1  (Argo CD app: argocd/applications/istio-cni.yaml)
+# sidecar 모드용 istio-cni. Cilium CNI conflist(/etc/cni/net.d/05-cilium.conflist)에 플러그인으로 체이닝된다.
+# 전제: Cilium cni.exclusive=false, socketLB.hostNamespaceOnly=true (Cilium Helm values)
+cni:
+  chained: true
+  cniBinDir: /opt/cni/bin
+  cniConfDir: /etc/cni/net.d
