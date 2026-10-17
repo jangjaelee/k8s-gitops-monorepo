@@ -24,8 +24,13 @@
 
 ## Argo CD로 관리하지 않는 것
 
-- Cilium(`helm/cilium/values.yaml`): CNI라서 Argo CD가 죽어도 복구할 수 있게 Helm CLI로 직접 설치한다.
+CNI나 Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 직접 적용한다. values 파일 첫 줄 주석에 차트·버전을 적는다.
+
+- Cilium(`helm/cilium/values.yaml`)
   `helm upgrade cilium cilium/cilium -n kube-system --version <고정> -f helm/cilium/values.yaml --force-conflicts`
+  ConfigMap만 바뀌면 `kubectl -n kube-system rollout restart ds/cilium`이 필요하다.
+- Argo CD(`helm/argocd/values.yaml`)
+  `helm upgrade argocd argo/argo-cd -n argo-cd --version <고정> -f helm/argocd/values.yaml --force-conflicts`
 
 ## 작업 흐름
 
