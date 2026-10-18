@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: arc-infralens
+  namespace: argo-cd
+spec:
+  project: system
+  sources:
+    - repoURL: ghcr.io/actions/actions-runner-controller-charts   # OCI (argocd/repositories/arc-oci.yaml 등록 필요)
+      chart: gha-runner-scale-set
+      targetRevision: 0.15.0          # 컨트롤러 앱(arc-controller)의 차트와 같은 버전이어야 한다
+      helm:
+        releaseName: arc-infralens
+        valueFiles:
+          - $values/cluster/home-k8s/helm/arc-infralens/values.yaml
+    - repoURL: https://github.com/jangjaelee/k8s-gitops-monorepo.git
+      targetRevision: main
+      ref: values
+    - repoURL: https://github.com/jangjaelee/k8s-gitops-monorepo.git
+      targetRevision: main
+      path: cluster/home-k8s/manifests/arc-infralens    # GitHub App ExternalSecret, NetworkPolicy
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: arc-runners            # 네임스페이스는 arc-controller 앱이 만든다
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true

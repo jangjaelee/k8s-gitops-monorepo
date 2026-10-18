@@ -1,0 +1,19 @@
+# chart: actions-runner-controller-charts/gha-runner-scale-set-controller 0.15.0 (ARC 0.15.0, OCI ghcr.io/actions/actions-runner-controller-charts)  (Argo CD app: argocd/applications/arc-controller.yaml)
+# GitHub Actions 러너 스케일 셋 컨트롤러. release arc → ServiceAccount arc-systems/arc-gha-rs-controller
+# 러너 스케일 셋 차트(helm/arc-infralens/values.yaml)와 버전이 같아야 한다(컨트롤러가 버전 라벨을 확인).
+# 업그레이드: 러너 스케일 셋 앱을 먼저 지우고 → 컨트롤러 차트·CRD 업그레이드 → 러너 스케일 셋 앱을 같은 버전으로 다시 등록(README "ARC")
+# 리스너 Pod도 이 이미지를 쓴다(GitHub App 자격 증명을 다룸) → digest로 고정. 차트 버전을 올릴 때 함께 바꾼다
+image:
+  tag: "0.15.0@sha256:162dfb5bfbda9e7e49fbed67d428994c9ced55b41a37a18b75b46dab0aa98d37"
+
+flags:
+  logLevel: info
+  # arc-runners 네임스페이스만 본다 → ClusterRole 대신 arc-runners·arc-systems의 Role만 만든다
+  watchSingleNamespace: arc-runners
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    memory: 512Mi

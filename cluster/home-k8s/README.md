@@ -67,6 +67,8 @@ CNI나 Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 �
 | node-local-dns | system | kube-system | deliveryhero/node-local-dns 2.9.2 (OCI) + 이 레포 path | k8s-dns-node-cache 1.26.7 | `helm/node-local-dns/values.yaml`, `manifests/node-local-dns/` | Cilium LRP |
 | vault | system | vault | hashicorp/vault 0.34.1 + 이 레포 path | Vault 2.0.4 | `helm/vault/values.yaml`, `manifests/vault/` | raft 단일 노드, 자동 unseal CronJob |
 | external-secrets | system | external-secrets | external-secrets/external-secrets 2.13.0 + 이 레포 path | v2.13.0 | `helm/external-secrets/values.yaml`, `manifests/external-secrets/` | ClusterSecretStore `vault`, `ServerSideDiff=true` |
+| arc-controller | system | arc-systems | actions-runner-controller-charts/gha-runner-scale-set-controller 0.15.0 (OCI) + 이 레포 path | ARC 0.15.0 | `helm/arc-controller/values.yaml`, `manifests/arc-controller/` | 네임스페이스 arc-systems·arc-runners, `watchSingleNamespace: arc-runners` |
+| arc-infralens | system | arc-runners | actions-runner-controller-charts/gha-runner-scale-set 0.15.0 (OCI) + 이 레포 path | ARC 0.15.0 | `helm/arc-infralens/values.yaml`, `manifests/arc-infralens/` | 러너 스케일 셋 `arc-infralens`(jangjaelee/infralens), DinD, ExternalSecret, NetworkPolicy |
 | kube-state-metrics | system | kube-system | prometheus-community/kube-state-metrics 7.4.0 | v2.19.0 | 기본값 | |
 | metric-server | o11y | kube-system | metrics-server/metrics-server 3.13.0 | v0.8.0 | `helm/metrics-server/values.yaml` | release 이름 `metric-server` |
 | kube-prometheus-stack | o11y | prometheus-operator | prometheus-community/kube-prometheus-stack 84.1.0 | operator v0.90.1 | `helm/prometheus-operator/values.yaml` | |
@@ -76,6 +78,7 @@ CNI나 Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 �
 | 파일 | 저장소 | 용도 |
 |---|---|---|
 | `argocd/repositories/deliveryhero-oci.yaml` | `ghcr.io/deliveryhero/helm-charts` (OCI, 공개) | node-local-dns 차트 |
+| `argocd/repositories/arc-oci.yaml` | `ghcr.io/actions/actions-runner-controller-charts` (OCI, 공개) | ARC 차트 |
 
 ## 외부 노출
 
@@ -135,6 +138,8 @@ Client ──► 192.168.50.200 (Cilium LB IPAM, L2 ARP)
    kubectl apply -f $C/argocd/repositories/deliveryhero-oci.yaml -f $A/node-local-dns.yaml   # Cilium localRedirectPolicies 필요
    kubectl apply -f $A/vault.yaml       # 이후 vault operator init + Secret vault-unseal-keys 생성
    kubectl apply -f $A/external-secrets.yaml   # Vault 설정(아래 "Vault" 절의 ESO 연동) 후
+   kubectl apply -f $C/argocd/repositories/arc-oci.yaml -f $A/arc-controller.yaml
+   kubectl apply -f $A/arc-infralens.yaml      # arc-controller Healthy 후, GitHub App 값을 Vault에 넣은 뒤(아래 "ARC" 절)
    kubectl apply -f $A/kube-state-metrics.yaml -f $A/metric-server.yaml -f $A/kube-prometheus-stack.yaml
    ```
 4. 노드 설정: `$C/node-config/wifi-promisc/install.sh <SSH 호스트...>`
@@ -252,6 +257,57 @@ sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keyc
 - PR에서는 빌드와 도구 확인만, main에 머지되면 `<러너 버전>-<커밋 7자리>`와 `<러너 버전>` 태그로 push합니다. digest는 Actions 실행 요약에 나옵니다.
 - `arc-runner`: 공식 `ghcr.io/actions/actions-runner`(Ubuntu 24.04, git·curl·jq·unzip·docker CLI·buildx)에 python3(+PyYAML)·ruby·helm 4·yq(mikefarah)·gcc·make·file·xz·zstd·zip을 더합니다. Go·Node는 워크플로의 setup 액션이 받습니다.
 - 러너는 자동 업데이트 없이 돕니다. 새 러너 릴리스 후 30일 안에 `FROM`을 올려야 GitHub이 잡을 계속 보냅니다. Dependabot(`.github/dependabot.yml`)이 매주 `FROM` 갱신 PR을 엽니다. helm·yq 버전은 Dockerfile `ARG`(체크섬 포함)로 직접 올립니다.
+
+## ARC (GitHub Actions 러너)
+
+Actions Runner Controller(러너 스케일 셋 모드)로 GitHub Actions self-hosted 러너를 둡니다. 지금은 `jangjaelee/infralens`(비공개) 저장소 전용 스케일 셋 하나입니다. InfraLens와 독립으로 이 레포에서만 운영합니다(InfraLens 저장소에는 ARC 매니페스트·자격 증명이 없습니다).
+
+| 항목 | 값 |
+|---|---|
+| 컨트롤러 | 앱 `arc-controller`, ns `arc-systems`, `watchSingleNamespace: arc-runners`(ClusterRole 없음). 리스너 Pod도 여기 뜹니다 |
+| 스케일 셋 | 앱 `arc-infralens`, ns `arc-runners`, 이름 **`arc-infralens`**(= 워크플로 `runs-on` 값), 저장소 단위 등록 |
+| 러너 | ephemeral(잡 하나 후 삭제), min 0 / max 4, linux/amd64. Pod당 requests 2 CPU·4Gi, 메모리 limit 8Gi(runner·dind 각각 1 CPU·2Gi / 4Gi) |
+| Docker | DinD 네이티브 사이드카 `docker:29.9.1-dind`(privileged), `DOCKER_HOST=unix:///var/run/docker.sock`. `/var/lib/docker`는 emptyDir 40Gi(러너와 함께 삭제) |
+| 이미지 | `ghcr.io/jangjaelee/arc-runner`(위 "자체 이미지") |
+| 격리 | 권한 없는 SA + `automountServiceAccountToken: false`. NetworkPolicy `arc-runners`: 들어오는 연결 전부 차단, 나가는 연결은 DNS와 공인 IP만(Pod·Service·노드·API 서버·집 LAN 불가) |
+| 인증 | GitHub App(infralens 저장소에만 설치) → Vault `secret/arc-infralens/github-app` → ExternalSecret → Secret `arc-runners/arc-infralens-github-app` |
+
+### GitHub App 준비 (처음 한 번, 레포 밖)
+
+1. App 만들기: <https://github.com/settings/apps/new?name=arc-infralens-home-k8s&url=https://github.com/jangjaelee/k8s-gitops-monorepo&public=false&webhook_active=false&administration=write&metadata=read>
+   (Repository permissions: Administration Read and write, Metadata Read-only / Webhook 끔 / Only on this account)
+2. App 설정 페이지에서 App ID를 적고, Private keys → Generate a private key로 `.pem`을 받습니다.
+3. Install App → Only select repositories → `jangjaelee/infralens`. 설치 후 주소 `.../settings/installations/<숫자>`의 숫자가 Installation ID입니다.
+4. Vault에 넣습니다. UI(`https://vault.awx.kr` → `secret/` → Create secret, path `arc-infralens/github-app`)에서 키 `github_app_id`, `github_app_installation_id`, `github_app_private_key`(PEM 전체)를 넣거나 CLI로 넣습니다.
+   ```bash
+   kubectl -n vault exec -i vault-0 -- sh -c 'cat > /tmp/app.pem' < <받은 파일>.pem
+   kubectl -n vault exec -it vault-0 -- sh
+   vault login -method=userpass username=<관리자>
+   vault kv put secret/arc-infralens/github-app github_app_id=<App ID> github_app_installation_id=<Installation ID> github_app_private_key=@/tmp/app.pem
+   rm /tmp/app.pem
+   ```
+5. 받은 `.pem`은 Vault에 넣은 뒤 지웁니다. Administration 쓰기 권한이 있는 키라 레포·로컬에 남기지 않습니다.
+
+### 확인
+
+```bash
+kubectl -n argo-cd get app arc-controller arc-infralens
+kubectl -n arc-runners get externalsecret arc-infralens-github-app       # SecretSynced
+kubectl -n arc-runners get autoscalingrunnerset arc-infralens
+kubectl -n arc-systems get pods                                          # 컨트롤러 + arc-infralens-*-listener
+kubectl -n arc-runners get ephemeralrunners,pods -w                      # 잡이 오면 러너 Pod 생성 → 끝나면 삭제
+```
+
+GitHub `jangjaelee/infralens` → Settings → Actions → Runners에 스케일 셋 `arc-infralens`가 보입니다. 워크플로는 `runs-on: arc-infralens`로 씁니다(InfraLens는 저장소 변수 `CI_RUNNER`).
+
+### 운영
+
+- 러너 이미지 갱신: Dependabot의 `FROM` PR 머지 → 이미지 빌드 → Actions 실행 요약의 태그·digest로 `helm/arc-infralens/values.yaml`의 `runnerImage` 앵커를 바꾸는 PR. 새 러너 릴리스 후 30일 안에 끝내야 잡을 계속 받습니다.
+- ARC 업그레이드: 컨트롤러와 스케일 셋의 차트 버전이 같아야 합니다. `arc-infralens` 앱 삭제(리스너·러너 정리 확인) → `arc-controller` `targetRevision`·values 첫 줄·컨트롤러 이미지 `image.tag`(digest)·이 문서 변경 → `arc-infralens`를 같은 버전으로 다시 등록.
+- 삭제 순서: `arc-infralens` → `arc-controller`. 스케일 셋 리소스의 finalizer를 컨트롤러가 풀어야 합니다.
+- **InfraLens를 공개로 바꾸기 전에** `arc-infralens` 앱을 지우고 저장소 변수 `CI_RUNNER`를 비웁니다. 공개 저장소의 fork PR이 self-hosted 러너에서 돌 수 있습니다.
+- dind는 privileged라 잡 코드가 노드 root 권한을 얻을 수 있습니다. 비공개 저장소의 신뢰하는 코드만 돌립니다. Kyverno PSS 정책은 Audit이라 막지 않고, `arc-runners` PolicyReport에 fail로 남습니다.
+- Docker Hub 익명 pull 한도: 러너는 매번 새로 떠서 이미지 캐시가 없고, 모든 pull이 집 공인 IP 하나에서 나갑니다. 한도에 걸리면 워크플로에서 `docker login`을 하거나 pull-through 캐시를 둡니다(미구성).
 
 ## 알려진 제약
 

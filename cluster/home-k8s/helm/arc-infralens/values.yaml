@@ -1,0 +1,116 @@
+# chart: actions-runner-controller-charts/gha-runner-scale-set 0.15.0 (ARC 0.15.0, OCI ghcr.io/actions/actions-runner-controller-charts)  (Argo CD app: argocd/applications/arc-infralens.yaml)
+# jangjaelee/infralens(비공개) 저장소 전용 러너 스케일 셋. 워크플로: runs-on: arc-infralens (InfraLens는 저장소 변수 CI_RUNNER로 지정)
+# 러너는 잡 하나만 돌고 지워진다(ephemeral). Docker는 DinD 사이드카(privileged)로 제공한다.
+# InfraLens 저장소를 공개로 바꾸기 전에 이 스케일 셋을 지운다(공개 저장소의 fork PR이 self-hosted 러너에서 돌 수 있다).
+githubConfigUrl: https://github.com/jangjaelee/infralens
+githubConfigSecret: arc-infralens-github-app   # GitHub App 자격 증명 Secret(manifests/arc-infralens/external-secret.yaml)
+runnerScaleSetName: arc-infralens
+
+minRunners: 0
+maxRunners: 4
+
+# Argo CD는 helm lookup을 못 하므로 컨트롤러 ServiceAccount를 직접 적는다(helm/arc-controller/values.yaml, release arc)
+controllerServiceAccount:
+  namespace: arc-systems
+  name: arc-gha-rs-controller
+
+listenerTemplate:
+  spec:
+    containers:
+      - name: listener
+        resources:
+          requests:
+            cpu: 20m
+            memory: 64Mi
+          limits:
+            memory: 256Mi
+
+# containerMode를 쓰지 않고 dind 구성을 직접 적는다(차트의 dind 모드는 docker:dind 태그·리소스를 바꿀 수 없다).
+# 구조는 차트 dind 모드와 같다: externals 복사 init → dind 네이티브 사이드카 → runner
+template:
+  spec:
+    automountServiceAccountToken: false   # 러너에 클러스터 API 자격 증명을 주지 않는다(SA도 권한 없는 gha-rs-no-permission)
+    topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            actions.github.com/scale-set-name: arc-infralens
+    initContainers:
+      - name: init-dind-externals
+        image: &runnerImage ghcr.io/jangjaelee/arc-runner:2.338.0-4031b25@sha256:30f44df23975b05a78c2389e1148b5a04fbe5c5f2442b1100ec277ba4adca516
+        command: ["cp"]
+        args: ["-r", "/home/runner/externals/.", "/home/runner/tmpDir/"]
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            memory: 256Mi
+        volumeMounts:
+          - name: dind-externals
+            mountPath: /home/runner/tmpDir
+      - name: dind
+        image: docker.io/library/docker:29.9.1-dind@sha256:3e5756e2b6dad6a5f1f5deacf0a19f9eaa2581b76ae092b2d4a118162e1d4d4e
+        restartPolicy: Always           # 네이티브 사이드카: runner가 끝나면 함께 종료
+        args:
+          - dockerd
+          - --host=unix:///var/run/docker.sock
+          - --group=$(DOCKER_GROUP_GID)
+        env:
+          - name: DOCKER_GROUP_GID
+            value: "123"                # 러너 이미지의 docker 그룹
+        securityContext:
+          privileged: true
+        startupProbe:
+          exec:
+            command: ["docker", "info"]
+          failureThreshold: 24
+          periodSeconds: 5
+        resources:
+          requests:
+            cpu: "1"
+            memory: 2Gi
+          limits:
+            memory: 4Gi
+        volumeMounts:
+          - name: work
+            mountPath: /home/runner/_work
+          - name: dind-sock
+            mountPath: /var/run
+          - name: dind-externals
+            mountPath: /home/runner/externals
+          - name: dind-storage
+            mountPath: /var/lib/docker
+    containers:
+      - name: runner
+        image: *runnerImage
+        command: ["/home/runner/run.sh"]
+        env:
+          - name: DOCKER_HOST
+            value: unix:///var/run/docker.sock
+          - name: RUNNER_WAIT_FOR_DOCKER_IN_SECONDS
+            value: "120"
+        resources:
+          requests:
+            cpu: "1"
+            memory: 2Gi
+          limits:
+            memory: 4Gi
+        volumeMounts:
+          - name: work
+            mountPath: /home/runner/_work
+          - name: dind-sock
+            mountPath: /var/run
+    volumes:
+      - name: work
+        emptyDir:
+          sizeLimit: 20Gi
+      - name: dind-sock
+        emptyDir: {}
+      - name: dind-externals
+        emptyDir: {}
+      - name: dind-storage              # 이미지·빌드 캐시. 러너가 지워지면 함께 사라진다
+        emptyDir:
+          sizeLimit: 40Gi
