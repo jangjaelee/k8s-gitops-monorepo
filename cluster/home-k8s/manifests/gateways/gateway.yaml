@@ -70,7 +70,7 @@ spec:
           selector:
             matchLabels:
               kubernetes.io/metadata.name: argo-cd
-    - name: https-infralens         # infralens.awx.kr 전용 (SNI로 구분, 전용 인증서). HTTPRoute는 InfraLens 쪽이 관리
+    - name: https-infralens         # infralens.awx.kr 전용 (SNI로 구분, 공용 *.awx.kr 인증서). HTTPRoute는 InfraLens 쪽이 관리
       hostname: infralens.awx.kr
       port: 443
       protocol: HTTPS
@@ -79,7 +79,7 @@ spec:
         certificateRefs:
           - group: ""
             kind: Secret
-            name: infralens-gateway-tls   # certificate-infralens.yaml
+            name: istio-gateway-tls       # certificate.yaml (*.awx.kr)
       allowedRoutes:
         namespaces:
           from: Selector
