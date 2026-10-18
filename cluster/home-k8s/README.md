@@ -274,7 +274,7 @@ Actions Runner Controller(러너 스케일 셋 모드)로 GitHub Actions self-ho
 |---|---|
 | 컨트롤러 | 앱 `arc-controller`, ns `arc-systems`, `watchSingleNamespace: arc-runners`(ClusterRole 없음). 리스너 Pod도 여기 뜹니다 |
 | 스케일 셋 | 앱 `arc-infralens`, ns `arc-runners`, 이름 **`arc-infralens`**(= 워크플로 `runs-on` 값), 저장소 단위 등록 |
-| 러너 | ephemeral(잡 하나 후 삭제), min 0 / max 4, linux/amd64. Pod당 requests 2 CPU·4Gi, 메모리 limit 8Gi(runner·dind 각각 1 CPU·2Gi / 4Gi) |
+| 러너 | ephemeral(잡 하나 후 삭제), min 0 / max 6, linux/amd64. Pod당 requests 2 CPU·4Gi, 메모리 limit 8Gi(runner·dind 각각 1 CPU·2Gi / 4Gi) |
 | Docker | DinD 네이티브 사이드카 `docker:29.9.1-dind`(privileged), `DOCKER_HOST=unix:///var/run/docker.sock`. `/var/lib/docker`는 emptyDir 40Gi(러너와 함께 삭제) |
 | 이미지 | `ghcr.io/jangjaelee/arc-runner`(위 "자체 이미지") |
 | 격리 | 권한 없는 SA + `automountServiceAccountToken: false`. NetworkPolicy `arc-runners`: 들어오는 연결 전부 차단, 나가는 연결은 DNS와 공인 IP만(Pod·Service·노드·API 서버·집 LAN 불가) |
