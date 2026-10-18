@@ -58,16 +58,17 @@ jobs:
           cache-to: type=gha,mode=max
       - name: 도구 확인
         run: |
+          # head·grep -q는 파이프를 일찍 닫아 pipefail에서 SIGPIPE(141)로 실패하므로 sed -n 1p, [[ ]]로 확인한다
           docker run --rm arc-runner:ci bash -euo pipefail -c '
             test "$(id -un)" = runner && test -x /home/runner/run.sh
-            git --version; curl --version | head -1; jq --version
+            git --version; curl --version | sed -n 1p; jq --version
             python3 --version; python3 -c "import yaml"
             ruby -ryaml -rjson -e "puts RUBY_VERSION"
-            helm version --short | grep -q "^v4\."; helm version --short
-            yq --version | grep -q mikefarah; yq --version
+            h="$(helm version --short)"; [[ "$h" == v4.* ]]; echo "helm $h"
+            y="$(yq --version)"; [[ "$y" == *mikefarah* ]]; echo "$y"
             docker --version; docker buildx version
-            tar --version | head -1; unzip -v | head -1; zstd --version; xz --version | head -1
-            gcc --version | head -1; make --version | head -1; file --version | head -1'
+            tar --version | sed -n 1p; unzip -v | sed -n 1p; zstd --version; xz --version | sed -n 1p
+            gcc --version | sed -n 1p; make --version | sed -n 1p; file --version | sed -n 1p'
       - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         if: github.event_name != 'pull_request'
         with:
