@@ -86,5 +86,10 @@ spec:
         namespaces:
           from: Selector
           selector:
-            matchLabels:
-              kubernetes.io/metadata.name: infralens-test   # 백엔드 시험 설치. PoC(infralens)로 옮기면 이 값을 바꾼다
+            matchExpressions:
+              # infralens-test: 백엔드 시험 설치(Dex /dex 라우트), infralens: PoC 설치(화면 /, /api, /auth)
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values:
+                  - infralens-test
+                  - infralens
