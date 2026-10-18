@@ -303,7 +303,7 @@ GitHub `jangjaelee/infralens` → Settings → Actions → Runners에 스케일 
 ### 운영
 
 - 러너 이미지 갱신: Dependabot의 `FROM` PR 머지 → 이미지 빌드 → Actions 실행 요약의 태그·digest로 `helm/arc-infralens/values.yaml`의 `runnerImage` 앵커를 바꾸는 PR. 새 러너 릴리스 후 30일 안에 끝내야 잡을 계속 받습니다.
-- ARC 업그레이드: 컨트롤러와 스케일 셋의 차트 버전이 같아야 합니다. `arc-infralens` 앱 삭제(리스너·러너 정리 확인) → `arc-controller` `targetRevision`·values 첫 줄·이 문서 변경 → `arc-infralens`를 같은 버전으로 다시 등록.
+- ARC 업그레이드: 컨트롤러와 스케일 셋의 차트 버전이 같아야 합니다. `arc-infralens` 앱 삭제(리스너·러너 정리 확인) → `arc-controller` `targetRevision`·values 첫 줄·컨트롤러 이미지 `image.tag`(digest)·이 문서 변경 → `arc-infralens`를 같은 버전으로 다시 등록.
 - 삭제 순서: `arc-infralens` → `arc-controller`. 스케일 셋 리소스의 finalizer를 컨트롤러가 풀어야 합니다.
 - **InfraLens를 공개로 바꾸기 전에** `arc-infralens` 앱을 지우고 저장소 변수 `CI_RUNNER`를 비웁니다. 공개 저장소의 fork PR이 self-hosted 러너에서 돌 수 있습니다.
 - dind는 privileged라 잡 코드가 노드 root 권한을 얻을 수 있습니다. 비공개 저장소의 신뢰하는 코드만 돌립니다. Kyverno PSS 정책은 Audit이라 막지 않고, `arc-runners` PolicyReport에 fail로 남습니다.
