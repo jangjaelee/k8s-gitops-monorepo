@@ -96,8 +96,11 @@ Client ──► 192.168.50.200 (Cilium LB IPAM, L2 ARP)
 | `home.awx.kr`, `www.home.awx.kr` | `http`, `https` | `istio-gateway-tls` | 앱별 | 테스트용, HTTP 허용 |
 | `vault.awx.kr` | `https-vault` | `vault-gateway-tls` | `vault/vault` | `vault:8200` |
 | `argocd.awx.kr` | `https-argocd` | `argocd-gateway-tls` | `argo-cd/argocd-server` | `argocd-server:80`(`server.insecure`) |
+| `infralens.awx.kr` | `https-infralens` | `infralens-gateway-tls` | `infralens-test`의 HTTPRoute(InfraLens 쪽 관리) | InfraLens 앱·웹·Dex |
 
-- `vault.awx.kr`, `argocd.awx.kr`는 :80 요청을 https로 301 리다이렉트합니다(`manifests/gateways/http-redirect.yaml`).
+- `vault.awx.kr`, `argocd.awx.kr`, `infralens.awx.kr`는 :80 요청을 https로 301 리다이렉트합니다(`manifests/gateways/http-redirect.yaml`).
+- 호스트 전용 listener는 그 앱의 네임스페이스 하나에서만 HTTPRoute를 받습니다(`allowedRoutes` Selector). `https-infralens`는 지금 `infralens-test`만 받습니다.
+- DNS A 레코드(hosting.co.kr)는 클러스터 안 Pod에서도 같은 주소로 풀립니다(CoreDNS → 노드 resolv.conf). Pod에서 LB IP로 나가는 연결은 Cilium이 Gateway Pod로 바로 보내므로, 앱 쪽 egress NetworkPolicy는 `ipBlock` 대신 istio-system의 Gateway Pod(`gateway.networking.k8s.io/gateway-name: istio-gateway`) :443을 허용해야 합니다.
 - LB IP `192.168.50.201–220`은 비어 있습니다(풀 `home-pool`).
 
 ## 작업 흐름
