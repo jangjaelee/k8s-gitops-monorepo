@@ -1,7 +1,8 @@
-# Gateway HTTPS 공용 인증서 (사설 CA ClusterIssuer homelab-ca, manifests/cert-manager-issuers/)
+# Gateway HTTPS 인증서 (사설 CA ClusterIssuer homelab-ca, manifests/cert-manager-issuers/)
 # Gateway와 같은 네임스페이스(istio-system)에 secret을 만들어 listener가 바로 참조한다.
-# *.awx.kr(한 단계)로 호스트 전용 listener들이 함께 쓴다 → 새 호스트는 listener만 추가하고 인증서 작업은 없다.
-# 와일드카드가 덮지 못하는 www.home.awx.kr(두 단계)와 LB IP는 따로 적는다.
+# 기본 https listener(home.awx.kr, www.home.awx.kr) 전용이다. 호스트 전용 listener는 각자 전용 인증서를 쓴다.
+# 다른 호스트 이름(*.awx.kr 등)을 넣지 않는다: 여러 listener가 덮는 인증서를 쓰면 브라우저가 HTTP/2 연결을
+# 다른 호스트에 재사용하고, Istio Gateway는 처음 연결한 호스트(SNI) 기준으로 라우팅해 404를 낸다(PR #47에서 확인).
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -11,7 +12,6 @@ spec:
   secretName: istio-gateway-tls
   commonName: home.awx.kr
   dnsNames:
-    - "*.awx.kr"              # infralens.awx.kr 등 호스트 전용 listener
     - home.awx.kr
     - www.home.awx.kr
   ipAddresses:

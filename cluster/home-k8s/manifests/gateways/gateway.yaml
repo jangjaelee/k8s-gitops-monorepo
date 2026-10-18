@@ -1,6 +1,8 @@
 # Cilium LB IPAM(192.168.50.200) → Service(LoadBalancer) → Istio Gateway Pod
 # HTTP :80, HTTPS :443(home.awx.kr, www.home.awx.kr — 사설 CA 인증서 certificate.yaml)
 # 호스트 전용 listener: vault.awx.kr(https-vault), argocd.awx.kr(https-argocd), infralens.awx.kr(https-infralens)
+# 호스트 전용 listener는 각자 전용 인증서를 쓴다. 여러 호스트를 덮는 인증서를 같이 쓰면 브라우저가 HTTP/2 연결을
+# 다른 호스트에 재사용하고, Istio는 처음 연결한 SNI의 라우트만 봐서 404를 낸다(certificate.yaml 주석, PR #47).
 # Istio가 이 Gateway를 보고 istio-system에 Deployment·Service(istio-gateway-istio)를 자동 생성한다.
 # 네임스페이스 istio-system은 istio-base/istiod 앱이 만든다(CreateNamespace).
 apiVersion: gateway.networking.k8s.io/v1
@@ -70,7 +72,7 @@ spec:
           selector:
             matchLabels:
               kubernetes.io/metadata.name: argo-cd
-    - name: https-infralens         # infralens.awx.kr 전용 (SNI로 구분, 공용 *.awx.kr 인증서). HTTPRoute는 InfraLens 쪽이 관리
+    - name: https-infralens         # infralens.awx.kr 전용 (SNI로 구분, 전용 인증서). HTTPRoute는 InfraLens 쪽이 관리
       hostname: infralens.awx.kr
       port: 443
       protocol: HTTPS
@@ -79,7 +81,7 @@ spec:
         certificateRefs:
           - group: ""
             kind: Secret
-            name: istio-gateway-tls       # certificate.yaml (*.awx.kr)
+            name: infralens-gateway-tls   # certificate-infralens.yaml
       allowedRoutes:
         namespaces:
           from: Selector
