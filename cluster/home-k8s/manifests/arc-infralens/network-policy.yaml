@@ -1,0 +1,44 @@
+# arc-runners의 러너 Pod 격리. 들어오는 연결은 모두 막고, 나가는 연결은 DNS와 인터넷(공인 IP)만 연다.
+# Cilium에서 ipBlock(CIDR)은 클러스터 밖(world)만 가리킨다 → 다른 Pod·Service·노드·API 서버로는 나갈 수 없다.
+# 사설 대역을 빼서 집 LAN(192.168.50.0/24: 공유기, LB IP 등)으로도 나가지 않는다.
+# 러너 안 Docker(DinD) 컨테이너 사이 통신은 Pod 네트워크 네임스페이스 안이라 이 정책과 무관하다.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: arc-runners
+  namespace: arc-runners
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  egress:
+    # kube-dns(172.16.0.10)는 Cilium LRP가 같은 노드의 node-local-dns로 보낸다. 둘 다 연다
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: node-local-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # github.com, ghcr.io, Docker Hub, proxy.golang.org, registry.npmjs.org, Actions 캐시(Azure Blob) 등
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16

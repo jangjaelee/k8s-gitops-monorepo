@@ -1,0 +1,20 @@
+# ARC 네임스페이스. 컨트롤러(arc-systems)가 watchSingleNamespace로 arc-runners 안에 Role을 만들므로
+# 두 네임스페이스를 컨트롤러 앱이 먼저(wave -1) 만든다. 러너 스케일 셋 앱(arc-infralens)은 arc-runners를 쓰기만 한다.
+# Istio sidecar를 넣지 않는다: 러너 Pod는 잡이 끝나면 종료돼야 하고, 클러스터 서비스와 통신하지 않는다.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: arc-systems           # 컨트롤러, 리스너 Pod
+  labels:
+    istio-injection: disabled
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: arc-runners           # 러너 Pod(DinD, privileged), GitHub App 자격 증명 Secret
+  labels:
+    istio-injection: disabled
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"

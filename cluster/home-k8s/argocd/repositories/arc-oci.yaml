@@ -1,0 +1,14 @@
+# Argo CD Helm OCI 저장소 등록 (공개 저장소, 인증 정보 없음). kubectl apply로 등록한다.
+# ARC(actions-runner-controller) 차트 gha-runner-scale-set-controller·gha-runner-scale-set이 OCI로만 배포되어 필요
+apiVersion: v1
+kind: Secret
+metadata:
+  name: repo-arc-oci
+  namespace: argo-cd
+  labels:
+    argocd.argoproj.io/secret-type: repository
+stringData:
+  name: arc
+  type: helm
+  url: ghcr.io/actions/actions-runner-controller-charts
+  enableOCI: "true"
