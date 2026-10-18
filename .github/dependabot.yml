@@ -1,0 +1,14 @@
+# Dependabot 버전 업데이트. PR은 gitops-pr-reviewer 에이전트가 리뷰·머지한다.
+version: 2
+updates:
+  # ARC 러너 이미지의 FROM(actions-runner). 러너 릴리스 후 30일 안에 올려야 잡을 계속 받는다.
+  # 이미지가 빌드된 뒤 helm/arc-infralens/values.yaml의 태그·digest를 따로 올린다(cluster/home-k8s/README.md "ARC").
+  - package-ecosystem: docker
+    directory: /cluster/home-k8s/images/arc-runner
+    schedule:
+      interval: weekly
+  # 워크플로의 외부 Action(커밋 SHA 고정)
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

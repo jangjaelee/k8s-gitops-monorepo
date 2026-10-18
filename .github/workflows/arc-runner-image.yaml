@@ -1,0 +1,97 @@
+# ARC 러너 이미지 빌드: cluster/home-k8s/images/arc-runner/ → ghcr.io/jangjaelee/arc-runner
+# PR: 빌드와 도구 확인만(push 없음). main: 확인 후 push. 태그 <러너 버전>-<커밋 7자리>, <러너 버전>
+# 클러스터 반영은 helm/arc-infralens/values.yaml의 이미지 태그·digest를 바꾸는 PR로 한다(cluster/home-k8s/README.md "ARC").
+# 외부 Action은 태그가 아닌 커밋 SHA로 고정한다(public 레포, packages: write 권한을 쓰는 워크플로).
+name: arc-runner-image
+
+on:
+  pull_request:
+    paths:
+      - cluster/home-k8s/images/arc-runner/**
+      - .github/workflows/arc-runner-image.yaml
+  push:
+    branches: [main]
+    paths:
+      - cluster/home-k8s/images/arc-runner/**
+      - .github/workflows/arc-runner-image.yaml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: arc-runner-image-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/jangjaelee/arc-runner
+  CONTEXT: cluster/home-k8s/images/arc-runner
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: 태그 계산 (FROM의 러너 버전)
+        id: tags
+        run: |
+          v="$(sed -nE 's|^FROM ghcr\.io/actions/actions-runner:([0-9.]+)@.*|\1|p' "$CONTEXT/Dockerfile")"
+          if [ -z "$v" ]; then echo "Dockerfile FROM에서 러너 버전을 찾지 못했습니다"; exit 1; fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "tags=$IMAGE:$v-${GITHUB_SHA::7},$IMAGE:$v" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: 빌드 (로컬 적재)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: ${{ env.CONTEXT }}
+          platforms: linux/amd64
+          load: true
+          push: false
+          tags: arc-runner:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: 도구 확인
+        run: |
+          # head·grep -q는 파이프를 일찍 닫아 pipefail에서 SIGPIPE(141)로 실패하므로 sed -n 1p, [[ ]]로 확인한다
+          docker run --rm arc-runner:ci bash -euo pipefail -c '
+            test "$(id -un)" = runner && test -x /home/runner/run.sh
+            git --version; curl --version | sed -n 1p; jq --version
+            python3 --version; python3 -c "import yaml"
+            ruby -ryaml -rjson -e "puts RUBY_VERSION"
+            h="$(helm version --short)"; [[ "$h" == v4.* ]]; echo "helm $h"
+            y="$(yq --version)"; [[ "$y" == *mikefarah* ]]; echo "$y"
+            docker --version; docker buildx version
+            tar --version | sed -n 1p; unzip -v | sed -n 1p; zstd --version; xz --version | sed -n 1p
+            gcc --version | sed -n 1p; make --version | sed -n 1p; file --version | sed -n 1p'
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        if: github.event_name != 'pull_request'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: push
+        if: github.event_name != 'pull_request'
+        id: push
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: ${{ env.CONTEXT }}
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.tags.outputs.tags }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.description=ARC runner image for home-k8s (actions-runner ${{ steps.tags.outputs.version }})
+          cache-from: type=gha
+      - name: 결과
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "### $IMAGE" >> "$GITHUB_STEP_SUMMARY"
+          echo "- tags: \`${{ steps.tags.outputs.tags }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- digest: \`${{ steps.push.outputs.digest }}\`" >> "$GITHUB_STEP_SUMMARY"
