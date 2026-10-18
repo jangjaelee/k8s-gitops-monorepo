@@ -1,4 +1,4 @@
-# http://vault.awx.kr, http://argocd.awx.kr → https (301)
+# http://vault.awx.kr, http://argocd.awx.kr, http://infralens.awx.kr → https (301)
 # Gateway의 http(:80) listener에만 붙는다. home.awx.kr는 HTTP 테스트용으로 남겨 둔다.
 # 새 HTTPS 전용 호스트를 추가하면 hostnames에도 넣는다.
 # group/kind/matches는 API 서버 기본값을 그대로 적어 둔다(없으면 Argo CD가 OutOfSync로 봄).
@@ -17,6 +17,7 @@ spec:
   hostnames:
     - vault.awx.kr
     - argocd.awx.kr
+    - infralens.awx.kr
   rules:
     - matches:
         - path:
