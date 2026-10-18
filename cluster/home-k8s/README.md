@@ -94,8 +94,8 @@ Client ──► 192.168.50.200 (Cilium LB IPAM, L2 ARP)
 | 호스트 | Listener | 인증서(istio-system) | HTTPRoute | 백엔드 |
 |---|---|---|---|---|
 | `home.awx.kr`, `www.home.awx.kr` | `http`, `https` | `istio-gateway-tls` | 앱별 | 테스트용, HTTP 허용 |
-| `vault.awx.kr` | `https-vault` | `vault-gateway-tls` | `vault/vault` | `vault:8200` |
-| `argocd.awx.kr` | `https-argocd` | `argocd-gateway-tls` | `argo-cd/argocd-server` | `argocd-server:80`(`server.insecure`) |
+| `vault.awx.kr` | `https-vault` | `istio-gateway-tls`(`*.awx.kr`) | `vault/vault` | `vault:8200` |
+| `argocd.awx.kr` | `https-argocd` | `istio-gateway-tls`(`*.awx.kr`) | `argo-cd/argocd-server` | `argocd-server:80`(`server.insecure`) |
 | `infralens.awx.kr` | `https-infralens` | `istio-gateway-tls`(`*.awx.kr`) | `infralens-test`의 HTTPRoute(InfraLens 쪽 관리) | InfraLens 앱·웹·Dex |
 
 - `vault.awx.kr`, `argocd.awx.kr`, `infralens.awx.kr`는 :80 요청을 https로 301 리다이렉트합니다(`manifests/gateways/http-redirect.yaml`).
