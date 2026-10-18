@@ -17,7 +17,7 @@ spec:
   infrastructure:
     annotations:
       lbipam.cilium.io/ips: "192.168.50.200"   # 자동 생성되는 Service에 전달됨
-    parametersRef:                  # 자동 생성 Deployment·PDB 설정 (gateway-options.yaml)
+    parametersRef:                  # 자동 생성 Deployment·HPA·PDB 설정 (gateway-options.yaml)
       group: ""
       kind: ConfigMap
       name: istio-gateway-options
