@@ -27,6 +27,7 @@ database:
     existingSecret: infralens-db-migrator
 encryption:
   existingSecret: infralens-encryption
+# 옮기는 중: Application helm.parameters의 image.tag가 이 값보다 우선한다. Application을 apply한 뒤 다음 PR에서 지운다.
 image:
   tag: sha-0559e78
 rbac:
