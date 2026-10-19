@@ -23,6 +23,9 @@ spec:
     server: https://kubernetes.default.svc
     namespace: infralens              # 네임스페이스와 차트 밖 리소스(infralens-pg, 비밀 Secret)는 InfraLens 쪽이 관리
   syncPolicy:
-    # Helm 릴리스에서 넘겨받는 중이라 자동 동기화·prune 없이 수동 sync. 켤지는 넘기기 확인 후 정한다.
+    # prune은 이 앱이 추적하는 리소스(차트 렌더링 결과)만 지운다. 차트 밖 infralens-pg·Secret·poc-* Job은 대상이 아니다.
+    automated:
+      prune: true
+      selfHeal: true
     syncOptions:
       - ServerSideApply=true

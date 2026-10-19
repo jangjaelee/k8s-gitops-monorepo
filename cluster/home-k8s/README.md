@@ -47,7 +47,7 @@ CNI나 Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 �
 
 ### Argo CD Application
 
-모든 앱: `metadata.namespace: argo-cd`, automated sync(prune, selfHeal), `ServerSideApply=true`. 예외: `infralens-poc`는 수동 sync(prune 끔).
+모든 앱: `metadata.namespace: argo-cd`, automated sync(prune, selfHeal), `ServerSideApply=true`.
 
 | Application | Project | 네임스페이스 | 소스(차트·버전 / 경로) | 앱 버전 | 이 레포의 values·매니페스트 | 비고 |
 |---|---|---|---|---|---|---|
@@ -69,7 +69,7 @@ CNI나 Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 �
 | external-secrets | system | external-secrets | external-secrets/external-secrets 2.13.0 + 이 레포 path | v2.13.0 | `helm/external-secrets/values.yaml`, `manifests/external-secrets/` | ClusterSecretStore `vault`, `ServerSideDiff=true` |
 | arc-controller | system | arc-systems | actions-runner-controller-charts/gha-runner-scale-set-controller 0.15.0 (OCI) + 이 레포 path | ARC 0.15.0 | `helm/arc-controller/values.yaml`, `manifests/arc-controller/` | 네임스페이스 arc-systems·arc-runners, `watchSingleNamespace: arc-runners` |
 | arc-infralens | system | arc-runners | actions-runner-controller-charts/gha-runner-scale-set 0.15.0 (OCI) + 이 레포 path | ARC 0.15.0 | `helm/arc-infralens/values.yaml`, `manifests/arc-infralens/` | 러너 스케일 셋 `arc-infralens`(jangjaelee/infralens), DinD, ExternalSecret, NetworkPolicy |
-| infralens-poc | default | infralens | github.com/jangjaelee/infralens(비공개) `deploy/helm/infralens` @ 985f771 | sha-0559e78 | `helm/infralens-poc/values.yaml` | InfraLens PoC, **수동 sync**, `ServerSideDiff=true`, 배포 키 필요(아래 "InfraLens PoC" 절) |
+| infralens-poc | default | infralens | github.com/jangjaelee/infralens(비공개) `deploy/helm/infralens` @ 985f771 | sha-0559e78 | `helm/infralens-poc/values.yaml` | InfraLens PoC, `ServerSideDiff=true`, 배포 키 필요(아래 "InfraLens PoC" 절) |
 | kube-state-metrics | system | kube-system | prometheus-community/kube-state-metrics 7.4.0 | v2.19.0 | 기본값 | |
 | metric-server | o11y | kube-system | metrics-server/metrics-server 3.13.0 | v0.8.0 | `helm/metrics-server/values.yaml` | release 이름 `metric-server` |
 | kube-prometheus-stack | o11y | prometheus-operator | prometheus-community/kube-prometheus-stack 84.1.0 | operator v0.90.1 | `helm/prometheus-operator/values.yaml` | |
@@ -145,7 +145,7 @@ Client ──► 192.168.50.200 (Cilium LB IPAM, L2 ARP)
    kubectl apply -f $A/external-secrets.yaml   # Vault 설정(아래 "Vault" 절의 ESO 연동) 후
    kubectl apply -f $C/argocd/repositories/arc-oci.yaml -f $A/arc-controller.yaml
    kubectl apply -f $A/arc-infralens.yaml      # arc-controller Healthy 후, GitHub App 값을 Vault에 넣은 뒤(아래 "ARC" 절)
-   kubectl apply -f $A/infralens-poc.yaml      # 배포 키 Secret과 InfraLens 쪽 Secret·DB가 있은 뒤(아래 "InfraLens PoC" 절), 수동 sync
+   kubectl apply -f $A/infralens-poc.yaml      # 배포 키 Secret과 InfraLens 쪽 Secret·DB가 있은 뒤(아래 "InfraLens PoC" 절)
    kubectl apply -f $A/kube-state-metrics.yaml -f $A/metric-server.yaml -f $A/kube-prometheus-stack.yaml
    ```
 4. 노드 설정: `$C/node-config/wifi-promisc/install.sh <SSH 호스트...>`
@@ -273,7 +273,8 @@ sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keyc
 
 `infralens` 네임스페이스의 InfraLens PoC를 Argo CD 앱 `infralens-poc`로 설치합니다. 릴리스된 제품을 GitOps로 설치하는 상황을 가정합니다. 처음에는 Helm CLI 릴리스 `infralens`(rev 9)로 설치했고, 2026-10-19에 Argo CD가 넘겨받았습니다.
 
-- 차트는 `jangjaelee/infralens`(비공개)의 `deploy/helm/infralens`를 커밋으로 고정합니다. 업그레이드는 `targetRevision`과 values의 `image.tag`를 같은 PR에서 바꿉니다.
+- 차트는 `jangjaelee/infralens`(비공개)의 `deploy/helm/infralens`를 커밋으로 고정합니다. 업그레이드는 `targetRevision`과 values의 `image.tag`를 같은 PR에서 바꿉니다. `image.tag`는 app·web·collector 이미지 모두에 들어갑니다.
+- 자동 sync(prune, selfHeal)입니다. values 변경은 머지되면 바로 반영됩니다. `targetRevision`은 Application 파일에 있으므로 머지 뒤 `kubectl apply -f argocd/applications/infralens-poc.yaml`을 해야 반영됩니다.
 - 차트 밖 리소스(`infralens-pg` StatefulSet·Service, DB·SSO·암호화 Secret, `poc-*` Job)는 InfraLens 쪽이 관리하고 이 앱은 건드리지 않습니다. Dex(`/dex`)는 `infralens-test` 네임스페이스에 있습니다.
 - 마이그레이션 Job(`infralens-migrate`, Helm 훅)은 Argo CD에서 PreSync 훅으로 sync할 때마다 돕니다.
 - 저장소 인증: GitHub 배포 키(읽기 전용, 제목 `argocd-home-k8s`). 개인 키는 Secret `argo-cd/repo-infralens`에만 있고 레포에는 넣지 않습니다. 다시 만들 때는 아래처럼 합니다.
