@@ -11,9 +11,14 @@ spec:
   sources:
     - repoURL: git@github.com:jangjaelee/infralens.git   # 비공개. 읽기 전용 배포 키 Secret argo-cd/repo-infralens(레포에 넣지 않음, README "InfraLens PoC" 절)
       path: deploy/helm/infralens
-      targetRevision: 985f771983ebea4bdd7e084df906a9a374324dbe   # 차트 커밋 고정(main 금지). image.tag와 함께 올린다
+      targetRevision: 985f771983ebea4bdd7e084df906a9a374324dbe   # 차트 커밋 고정(main 금지). 아래 image.tag와 같은 PR에서 올린다
       helm:
         releaseName: infralens
+        # image.tag를 values 파일이 아니라 여기에 둔다. values는 머지 즉시 자동 sync되고 targetRevision은 이 파일을
+        # kubectl apply해야 반영되므로, 따로 두면 그 사이 "새 이미지 + 옛 차트"로 돈다. 한 파일이면 apply 한 번에 함께 바뀐다.
+        parameters:
+          - name: image.tag
+            value: sha-0559e78
         valueFiles:
           - $values/cluster/home-k8s/helm/infralens-poc/values.yaml
     - repoURL: https://github.com/jangjaelee/k8s-gitops-monorepo.git
