@@ -3,6 +3,9 @@ kind: Application
 metadata:
   name: infralens-poc
   namespace: argo-cd
+  annotations:
+    # 차트 HTTPRoute backendRefs에 API 서버 기본값(group, kind, weight)이 빠져 클라이언트 diff가 계속 OutOfSync로 본다
+    argocd.argoproj.io/compare-options: ServerSideDiff=true
 spec:
   project: default                    # 제품(InfraLens) 앱이라 시스템 구성요소(system)와 구분
   sources:
