@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: infralens-poc
+  namespace: argo-cd
+spec:
+  project: default                    # 제품(InfraLens) 앱이라 시스템 구성요소(system)와 구분
+  sources:
+    - repoURL: git@github.com:jangjaelee/infralens.git   # 비공개. 읽기 전용 배포 키 Secret argo-cd/repo-infralens(레포에 넣지 않음, README "InfraLens PoC" 절)
+      path: deploy/helm/infralens
+      targetRevision: 985f771983ebea4bdd7e084df906a9a374324dbe   # 차트 커밋 고정(main 금지). image.tag와 함께 올린다
+      helm:
+        releaseName: infralens
+        valueFiles:
+          - $values/cluster/home-k8s/helm/infralens-poc/values.yaml
+    - repoURL: https://github.com/jangjaelee/k8s-gitops-monorepo.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: infralens              # 네임스페이스와 차트 밖 리소스(infralens-pg, 비밀 Secret)는 InfraLens 쪽이 관리
+  syncPolicy:
+    # Helm 릴리스에서 넘겨받는 중이라 자동 동기화·prune 없이 수동 sync. 켤지는 넘기기 확인 후 정한다.
+    syncOptions:
+      - ServerSideApply=true
