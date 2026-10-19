@@ -7,9 +7,10 @@ githubConfigSecret: arc-infralens-github-app   # GitHub App 자격 증명 Secret
 runnerScaleSetName: arc-infralens
 
 minRunners: 0
-# 러너 Pod 하나가 requests 2 CPU·4Gi를 쓴다(아래 template). 6개 = 12 CPU·24Gi.
-# 러너를 뺀 워커 3대의 여유(약 29 CPU·54Gi)로 requests 기준 9개까지 들어간다. 늘리기 전에 다시 계산한다.
-maxRunners: 6
+# 러너 Pod 하나가 requests 2 CPU·4Gi를 쓴다(runner + dind, 아래 template). 8개 = 16 CPU·32Gi.
+# 노드마다 따로 들어가야 한다(2026-10-19, 러너 외 requests 제외): node-01 3개(메모리), node-02 2개(메모리),
+# node-03 3개(CPU) = 8개. 더 올리면 남는 러너는 자리가 날 때까지 Pending. 늘리기 전에 다시 계산한다.
+maxRunners: 8
 
 # Argo CD는 helm lookup을 못 하므로 컨트롤러 ServiceAccount를 직접 적는다(helm/arc-controller/values.yaml, release arc)
 controllerServiceAccount:
