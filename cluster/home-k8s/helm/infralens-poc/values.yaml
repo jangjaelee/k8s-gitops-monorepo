@@ -1,0 +1,45 @@
+# chart: jangjaelee/infralens(비공개) deploy/helm/infralens 0.1.0 @ 985f771  (Argo CD app: argocd/applications/infralens-poc.yaml)
+# InfraLens PoC 설치. 릴리스된 제품을 GitOps로 설치하는 상황을 가정한다. 값은 Helm 릴리스 rev 9와 같다.
+# 비밀값은 없다. existingSecret은 Secret 이름만 가리키고, Secret은 InfraLens 쪽이 infralens ns에 만든다.
+# 업그레이드: Application의 targetRevision(차트 커밋)과 image.tag를 같은 PR에서 함께 바꾼다.
+app:
+  enabled: true
+  publicUrl: https://infralens.awx.kr
+  sso:
+    adminSubjects:
+    - CiQwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDESBWxvY2Fs
+    allowAllUsers: true
+    ca:
+      existingSecret: infralens-gw-ca
+      key: ca.crt
+    clientId: infralens
+    clientSecret:
+      existingSecret: infralens-sso
+    issuer: https://infralens.awx.kr/dex
+  trustedProxyCIDRs:
+  - 10.0.0.0/16
+database:
+  app:
+    existingSecret: infralens-db-app
+  loader:
+    existingSecret: infralens-db-loader
+  migrator:
+    existingSecret: infralens-db-migrator
+encryption:
+  existingSecret: infralens-encryption
+image:
+  tag: sha-0559e78
+rbac:
+  inClusterCollector:
+    enabled: true
+routing:
+  gateway:
+    enabled: true
+    parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: istio-gateway
+      namespace: istio-system
+      sectionName: https-infralens
+web:
+  enabled: true

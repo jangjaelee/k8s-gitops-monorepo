@@ -47,7 +47,7 @@ CNI나 Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 �
 
 ### Argo CD Application
 
-모든 앱: `metadata.namespace: argo-cd`, automated sync(prune, selfHeal), `ServerSideApply=true`.
+모든 앱: `metadata.namespace: argo-cd`, automated sync(prune, selfHeal), `ServerSideApply=true`. 예외: `infralens-poc`는 수동 sync(prune 끔).
 
 | Application | Project | 네임스페이스 | 소스(차트·버전 / 경로) | 앱 버전 | 이 레포의 values·매니페스트 | 비고 |
 |---|---|---|---|---|---|---|
@@ -69,6 +69,7 @@ CNI나 Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 �
 | external-secrets | system | external-secrets | external-secrets/external-secrets 2.13.0 + 이 레포 path | v2.13.0 | `helm/external-secrets/values.yaml`, `manifests/external-secrets/` | ClusterSecretStore `vault`, `ServerSideDiff=true` |
 | arc-controller | system | arc-systems | actions-runner-controller-charts/gha-runner-scale-set-controller 0.15.0 (OCI) + 이 레포 path | ARC 0.15.0 | `helm/arc-controller/values.yaml`, `manifests/arc-controller/` | 네임스페이스 arc-systems·arc-runners, `watchSingleNamespace: arc-runners` |
 | arc-infralens | system | arc-runners | actions-runner-controller-charts/gha-runner-scale-set 0.15.0 (OCI) + 이 레포 path | ARC 0.15.0 | `helm/arc-infralens/values.yaml`, `manifests/arc-infralens/` | 러너 스케일 셋 `arc-infralens`(jangjaelee/infralens), DinD, ExternalSecret, NetworkPolicy |
+| infralens-poc | default | infralens | github.com/jangjaelee/infralens(비공개) `deploy/helm/infralens` @ 985f771 | sha-0559e78 | `helm/infralens-poc/values.yaml` | InfraLens PoC, **수동 sync**, 배포 키 필요(아래 "InfraLens PoC" 절) |
 | kube-state-metrics | system | kube-system | prometheus-community/kube-state-metrics 7.4.0 | v2.19.0 | 기본값 | |
 | metric-server | o11y | kube-system | metrics-server/metrics-server 3.13.0 | v0.8.0 | `helm/metrics-server/values.yaml` | release 이름 `metric-server` |
 | kube-prometheus-stack | o11y | prometheus-operator | prometheus-community/kube-prometheus-stack 84.1.0 | operator v0.90.1 | `helm/prometheus-operator/values.yaml` | |
@@ -79,6 +80,7 @@ CNI나 Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 �
 |---|---|---|
 | `argocd/repositories/deliveryhero-oci.yaml` | `ghcr.io/deliveryhero/helm-charts` (OCI, 공개) | node-local-dns 차트 |
 | `argocd/repositories/arc-oci.yaml` | `ghcr.io/actions/actions-runner-controller-charts` (OCI, 공개) | ARC 차트 |
+| (레포에 없음) Secret `argo-cd/repo-infralens` | `git@github.com:jangjaelee/infralens.git` (비공개, 읽기 전용 배포 키) | InfraLens 차트. 개인 키가 들어 있어 클러스터에서 직접 만든다 |
 
 ## 외부 노출
 
@@ -143,6 +145,7 @@ Client ──► 192.168.50.200 (Cilium LB IPAM, L2 ARP)
    kubectl apply -f $A/external-secrets.yaml   # Vault 설정(아래 "Vault" 절의 ESO 연동) 후
    kubectl apply -f $C/argocd/repositories/arc-oci.yaml -f $A/arc-controller.yaml
    kubectl apply -f $A/arc-infralens.yaml      # arc-controller Healthy 후, GitHub App 값을 Vault에 넣은 뒤(아래 "ARC" 절)
+   kubectl apply -f $A/infralens-poc.yaml      # 배포 키 Secret과 InfraLens 쪽 Secret·DB가 있은 뒤(아래 "InfraLens PoC" 절), 수동 sync
    kubectl apply -f $A/kube-state-metrics.yaml -f $A/metric-server.yaml -f $A/kube-prometheus-stack.yaml
    ```
 4. 노드 설정: `$C/node-config/wifi-promisc/install.sh <SSH 호스트...>`
@@ -265,6 +268,24 @@ sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keyc
 - PR에서는 빌드와 도구 확인만, main에 머지되면 `<러너 버전>-<커밋 7자리>`와 `<러너 버전>` 태그로 push합니다. digest는 Actions 실행 요약에 나옵니다.
 - `arc-runner`: 공식 `ghcr.io/actions/actions-runner`(Ubuntu 24.04, git·curl·jq·unzip·docker CLI·buildx)에 python3(+PyYAML)·ruby·helm 4·yq(mikefarah)·gcc·make·file·xz·zstd·zip을 더합니다. Go·Node는 워크플로의 setup 액션이 받습니다.
 - 러너는 자동 업데이트 없이 돕니다. 새 러너 릴리스 후 30일 안에 `FROM`을 올려야 GitHub이 잡을 계속 보냅니다. Dependabot(`.github/dependabot.yml`)이 매주 `FROM` 갱신 PR을 엽니다. helm·yq 버전은 Dockerfile `ARG`(체크섬 포함)로 직접 올립니다.
+
+## InfraLens PoC
+
+`infralens` 네임스페이스의 InfraLens PoC를 Argo CD 앱 `infralens-poc`로 설치합니다. 릴리스된 제품을 GitOps로 설치하는 상황을 가정합니다. 처음에는 Helm CLI 릴리스 `infralens`(rev 9)로 설치했고, 2026-10-19에 Argo CD가 넘겨받았습니다.
+
+- 차트는 `jangjaelee/infralens`(비공개)의 `deploy/helm/infralens`를 커밋으로 고정합니다. 업그레이드는 `targetRevision`과 values의 `image.tag`를 같은 PR에서 바꿉니다.
+- 차트 밖 리소스(`infralens-pg` StatefulSet·Service, DB·SSO·암호화 Secret, `poc-*` Job)는 InfraLens 쪽이 관리하고 이 앱은 건드리지 않습니다. Dex(`/dex`)는 `infralens-test` 네임스페이스에 있습니다.
+- 마이그레이션 Job(`infralens-migrate`, Helm 훅)은 Argo CD에서 PreSync 훅으로 sync할 때마다 돕니다.
+- 저장소 인증: GitHub 배포 키(읽기 전용, 제목 `argocd-home-k8s`). 개인 키는 Secret `argo-cd/repo-infralens`에만 있고 레포에는 넣지 않습니다. 다시 만들 때는 아래처럼 합니다.
+
+```bash
+d=$(mktemp -d); ssh-keygen -q -t ed25519 -N '' -C argocd-home-k8s -f $d/id
+kubectl -n argo-cd create secret generic repo-infralens --from-literal=type=git \
+  --from-literal=url=git@github.com:jangjaelee/infralens.git --from-literal=project=default --from-file=sshPrivateKey=$d/id
+kubectl -n argo-cd label secret repo-infralens argocd.argoproj.io/secret-type=repository
+gh repo deploy-key add $d/id.pub --repo jangjaelee/infralens --title argocd-home-k8s   # --allow-write 없이
+rm -rf $d
+```
 
 ## ARC (GitHub Actions 러너)
 
