@@ -6,7 +6,10 @@ githubConfigUrl: https://github.com/jangjaelee/infralens
 githubConfigSecret: arc-infralens-github-app   # GitHub App 자격 증명 Secret(manifests/arc-infralens/external-secret.yaml)
 runnerScaleSetName: arc-infralens
 
-minRunners: 0
+# 대기 러너 2개를 늘 켜 둔다(2026-10-20, 잡 대기 중앙값 20~190초를 줄이려고). ARC 0.15.0은 목표 러너 수를
+# min(minRunners + 배정된 잡 수, maxRunners)로 계산하므로, 대기 러너가 잡을 받으면 새 대기 러너가 채워진다.
+# 상시 점유: 2개 × requests 2 CPU·4Gi = 4 CPU·8Gi. 동시 잡이 7개 이상이면 max에 걸려 대기 러너가 줄어든다.
+minRunners: 2
 # 러너 Pod 하나가 requests 2 CPU·4Gi를 쓴다(runner + dind, 아래 template). 8개 = 16 CPU·32Gi.
 # 노드마다 따로 들어가야 한다(2026-10-19, 러너 외 requests 제외): node-01 3개(메모리), node-02 2개(메모리),
 # node-03 3개(CPU) = 8개. 더 올리면 남는 러너는 자리가 날 때까지 Pending. 늘리기 전에 다시 계산한다.
