@@ -24,9 +24,9 @@ Kubernetes Secret 값은 어떤 형태로도 읽거나 출력하지 않는다. b
   - Secret을 env나 파일로 받은 Pod에서 `kubectl exec … env|printenv|cat`
   - `helm get values`, `argocd app manifests`처럼 Secret 값이 렌더되는 명령
 - 쓰는 명령(있는지, 키 이름, 크기만):
-  - `kubectl get secret <이름>`(`-o` 없이)
   - `kubectl describe secret <이름>`(키 이름과 바이트 수만 나온다)
-  - 메타데이터만: `kubectl get secret <이름> --show-managed-fields -o jsonpath='{.metadata.name} {.metadata.creationTimestamp}'`
+  - `kubectl get secret <이름>`(출력 형식 옵션 없이)
+  - 메타데이터만 뽑는 jsonpath: `kubectl get secret <이름> -o jsonpath='{.metadata.name} {.metadata.creationTimestamp}'`(`.data`를 가리키지 않는다)
 - Pod가 어떤 Secret을 참조하는지는 렌더 결과나 Deployment의 `valueFrom.secretKeyRef` 이름·키만 본다.
 - 실수로 값이 출력되면 즉시 멈춘다. 값을 다시 출력하거나 인용하지 말고, 마지막 응답에 무엇이·어디에 노출됐는지 적는다. 값은 적지 않는다.
 
@@ -51,7 +51,7 @@ Kubernetes Secret 값은 어떤 형태로도 읽거나 출력하지 않는다. b
 | # | 검사 | 방법 |
 |---|---|---|
 | 1 | 변경 범위 | 바뀐 파일이 PR 제목·본문이 말한 작업에 해당하는지. `.DS_Store`, `.docx` 같은 무관한 파일이 없는지 |
-| 2 | 비밀값 | diff에서 `password`, `token`, `secret`, `BEGIN .*PRIVATE KEY`, `client-key-data`, `apiKey:` 값, base64 덩어리를 찾는다. 이 레포는 public이다. 참조하는 Secret이 클러스터에 있는지 볼 때는 `kubectl describe secret`만 쓴다(위 "Secret 값은 읽지 않는다") |
+| 2 | 비밀값 | diff에서 `password`, `token`, `secret`, `BEGIN .*PRIVATE KEY`, `client-key-data`, `apiKey:` 값, base64 덩어리를 찾는다. 이 레포는 public이다. 참조하는 Secret이 클러스터에 있는지는 위 "Secret 값은 읽지 않는다"의 쓰는 명령(주로 `kubectl describe secret`)으로만 본다 |
 | 3 | YAML 문법 | 바뀐 `*.yaml` 전부 `yq e '.' <file> >/dev/null` |
 | 4 | 버전 고정 | `Application`의 Helm `targetRevision`이 정확한 버전(예: `1.30.1`)인지. 이 레포 자체를 가리키는 소스는 `main` 허용 |
 | 5 | Application 규칙 | `CLAUDE.md`의 규칙(namespace `argo-cd`, project, multi-source `$values` 경로가 실제 파일과 일치, `ServerSideApply=true`) |
@@ -69,7 +69,7 @@ Kubernetes Secret 값은 어떤 형태로도 읽거나 출력하지 않는다. b
   gh pr review <N> --repo jangjaelee/k8s-gitops-monorepo --comment --body-file <결과.md>
   ```
   본문: 검사표(# / 검사 / 결과 / 근거), 지적 사항, 최종 판단(MERGE 또는 HOLD).
-- **모두 PASS(또는 사유 있는 SKIP)이면** squash 머지하고 브랜치를 지운다.
+- **모두 PASS(또는 사유 있는 SKIP)이면** squash 머지하고 브랜치를 지운다. 단, 비밀값이 걸린 PR은 호출자가 사용자 승인을 밝힌 경우에만 머지한다("절대 하지 않는 것").
   ```bash
   gh pr merge <N> --repo jangjaelee/k8s-gitops-monorepo --squash --delete-branch
   ```
