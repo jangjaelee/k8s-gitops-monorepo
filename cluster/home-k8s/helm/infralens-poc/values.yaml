@@ -1,7 +1,7 @@
-# chart: jangjaelee/infralens(비공개) deploy/helm/infralens 0.1.0 @ 548d811  (Argo CD app: argocd/applications/infralens-poc.yaml)
+# chart: jangjaelee/infralens(비공개) deploy/helm/infralens 0.1.0 @ v0.1.0  (Argo CD app: argocd/applications/infralens-poc.yaml)
 # InfraLens PoC 설치. 릴리스된 제품을 GitOps로 설치하는 상황을 가정한다. 값은 Helm 릴리스 rev 9와 같다(image.tag 제외).
 # 비밀값은 없다. existingSecret은 Secret 이름만 가리키고, Secret은 InfraLens 쪽이 infralens ns에 만든다.
-# image.tag는 여기 두지 않는다: Application의 helm.parameters에 targetRevision과 함께 둔다(argocd/applications/infralens-poc.yaml).
+# image.tag는 여기 두지 않는다: 릴리스 차트는 appVersion을 쓰고, 커밋으로 올릴 때는 Application의 helm.parameters에 둔다.
 app:
   enabled: true
   publicUrl: https://infralens.awx.kr
@@ -25,6 +25,8 @@ database:
     existingSecret: infralens-db-loader
   migrator:
     existingSecret: infralens-db-migrator
+  llm:
+    existingSecret: infralens-db-llm           # AI 채팅 전용 DB 계정(키 url)
 encryption:
   existingSecret: infralens-encryption
 rbac:
@@ -47,3 +49,21 @@ kube:
   cache:
     idleStopAfter: 1h
     warm: [pod, deployment, replicaset, statefulset, daemonset, job, cronjob, horizontalpodautoscaler, service, endpointslice, ingress, ingressclass, networkpolicy, persistentvolumeclaim, node, event, namespace]
+# AI 채팅. API 키는 Secret 이름만 가리킨다(키 api-key, InfraLens 쪽이 infralens ns에 만든다).
+# 켜면 API 서버에 LLM env가 붙고 종료 유예가 길어지며(응답 스트림 마무리), 주간 평가 CronJob infralens-llm-eval이 생긴다.
+llm:
+  enabled: true
+  primary: anthropic
+  secondary: openai
+  anthropic:
+    model: claude-sonnet-5-5
+    apiKey:
+      existingSecret: infralens-llm-anthropic
+  openai:
+    model: gpt-6.1-sol
+    apiKey:
+      existingSecret: infralens-llm-openai
+  limits:
+    monthlyTokenBudget: 5000000
+  eval:
+    enabled: true
