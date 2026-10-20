@@ -336,7 +336,7 @@ GitHub `jangjaelee/infralens` → Settings → Actions → Runners에 스케일 
 
 ### CI 전용 노드
 
-worker-node-04(16 CPU·22Gi·디스크 456G)는 러너 전용입니다. taint와 라벨은 Argo CD가 아니라 kubectl로 붙입니다(노드 객체는 레포로 관리하지 않습니다).
+worker-node-04(16 CPU·22Gi, 디스크 전체 456G·2026-10-20 여유 411G)는 러너 전용입니다. taint와 라벨은 Argo CD가 아니라 kubectl로 붙입니다(노드 객체는 레포로 관리하지 않습니다).
 
 ```bash
 kubectl taint node worker-node-04 dedicated=ci:NoSchedule
