@@ -2,6 +2,7 @@
 # - storage.cache(blobdescriptor inmemory)를 두지 않는다. cleanup CronJob이 실행 중에 파일을 지워도 레지스트리가 없는 blob을 있다고 보지 않게
 # - log.level info(기본 debug)
 # 미러의 프록시 설정은 registry-mirror.yaml의 env(REGISTRY_PROXY_*)로 덧붙인다.
+# subPath로 마운트해서 이 파일만 바꾸면 Pod가 다시 뜨지 않는다. 바꿀 때 두 Deployment의 ci-cache/config-rev 주석도 함께 바꾼다.
 apiVersion: v1
 kind: ConfigMap
 metadata:

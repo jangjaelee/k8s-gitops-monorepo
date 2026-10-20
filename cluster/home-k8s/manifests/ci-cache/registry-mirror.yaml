@@ -21,6 +21,8 @@ spec:
       labels:
         app.kubernetes.io/name: registry-mirror
         app.kubernetes.io/part-of: ci-cache
+      annotations:
+        ci-cache/config-rev: "1"        # registry-config.yaml을 바꾸면 올린다(롤링 재시작)
     spec:
       automountServiceAccountToken: false
       nodeSelector:
