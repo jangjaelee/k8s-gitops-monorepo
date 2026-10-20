@@ -69,7 +69,7 @@ CNI나 Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 �
 | external-secrets | system | external-secrets | external-secrets/external-secrets 2.13.0 + 이 레포 path | v2.13.0 | `helm/external-secrets/values.yaml`, `manifests/external-secrets/` | ClusterSecretStore `vault`, `ServerSideDiff=true` |
 | arc-controller | system | arc-systems | actions-runner-controller-charts/gha-runner-scale-set-controller 0.15.0 (OCI) + 이 레포 path | ARC 0.15.0 | `helm/arc-controller/values.yaml`, `manifests/arc-controller/` | 네임스페이스 arc-systems·arc-runners, `watchSingleNamespace: arc-runners` |
 | arc-infralens | system | arc-runners | actions-runner-controller-charts/gha-runner-scale-set 0.15.0 (OCI) + 이 레포 path | ARC 0.15.0 | `helm/arc-infralens/values.yaml`, `manifests/arc-infralens/` | 러너 스케일 셋 `arc-infralens`(jangjaelee/infralens), DinD, ExternalSecret, NetworkPolicy |
-| infralens-poc | default | infralens | github.com/jangjaelee/infralens(비공개) `deploy/helm/infralens` @ 548d811 | sha-548d811 | `helm/infralens-poc/values.yaml` | InfraLens PoC, 배포 키 필요(아래 "InfraLens PoC" 절) |
+| infralens-poc | default | infralens | github.com/jangjaelee/infralens(비공개) `deploy/helm/infralens` @ v0.1.0 (d2f81d9) | 0.1.0 (appVersion) | `helm/infralens-poc/values.yaml` | InfraLens PoC, 배포 키 필요(아래 "InfraLens PoC" 절) |
 | kube-state-metrics | system | kube-system | prometheus-community/kube-state-metrics 7.4.0 | v2.19.0 | 기본값 | |
 | metric-server | o11y | kube-system | metrics-server/metrics-server 3.13.0 | v0.8.0 | `helm/metrics-server/values.yaml` | release 이름 `metric-server` |
 | kube-prometheus-stack | o11y | prometheus-operator | prometheus-community/kube-prometheus-stack 84.1.0 | operator v0.90.1 | `helm/prometheus-operator/values.yaml` | |
@@ -273,8 +273,8 @@ sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keyc
 
 `infralens` 네임스페이스의 InfraLens PoC를 Argo CD 앱 `infralens-poc`로 설치합니다. 릴리스된 제품을 GitOps로 설치하는 상황을 가정합니다. 처음에는 Helm CLI 릴리스 `infralens`(rev 9)로 설치했고, 2026-10-19에 Argo CD가 넘겨받았습니다.
 
-- 차트는 `jangjaelee/infralens`(비공개)의 `deploy/helm/infralens`를 커밋으로 고정합니다. `image.tag`(app·web·collector 이미지 모두에 들어감)는 values 파일이 아니라 Application의 `helm.parameters`에 `targetRevision`과 함께 둡니다.
-- 업그레이드: Application 파일의 `targetRevision`과 `image.tag`를 한 PR에서 바꾸고, 머지 뒤 `kubectl apply -f argocd/applications/infralens-poc.yaml`. apply 전까지는 옛 차트·옛 이미지 그대로라 둘이 어긋나는 때가 없습니다.
+- 차트는 `jangjaelee/infralens`(비공개)의 `deploy/helm/infralens`를 릴리스 태그(예: `v0.1.0`)로 고정합니다. 이미지(app·web·collector)는 차트 `appVersion`을 따르므로 `image.tag`를 두지 않습니다. 릴리스가 아닌 커밋으로 올려야 할 때는 `targetRevision`을 커밋으로 고정하고 `image.tag`를 values 파일이 아니라 Application의 `helm.parameters`에 둡니다.
+- 업그레이드: Application 파일의 `targetRevision`(커밋일 때는 `image.tag`도)을 한 PR에서 바꾸고, 머지 뒤 `kubectl apply -f argocd/applications/infralens-poc.yaml`. apply 전까지는 옛 차트·옛 이미지 그대로라 둘이 어긋나는 때가 없습니다.
 - 자동 sync(prune, selfHeal)입니다. values 파일의 다른 값은 머지되면 바로 반영됩니다.
 - 차트 밖 리소스(`infralens-pg` StatefulSet·Service, DB·SSO·암호화·LLM Secret, `poc-*` Job)는 InfraLens 쪽이 관리하고 이 앱은 건드리지 않습니다. Dex(`/dex`)는 `infralens-test` 네임스페이스에 있습니다.
 - AI 채팅(`llm.enabled`): API 키 Secret `infralens-llm-anthropic`·`infralens-llm-openai`(키 `api-key`)와 DB 계정 Secret `infralens-db-llm`(키 `url`)이 먼저 있어야 합니다. 켜면 주간 평가 CronJob `infralens-llm-eval`(일요일 05:00 KST)이 생깁니다.
