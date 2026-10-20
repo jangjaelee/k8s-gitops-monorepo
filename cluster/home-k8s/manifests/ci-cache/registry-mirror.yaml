@@ -61,8 +61,6 @@ spec:
         - name: registry
           image: *registryImage
           env:
-            - name: REGISTRY_HTTP_ADDR
-              value: :5000
             - name: REGISTRY_PROXY_REMOTEURL
               value: https://registry-1.docker.io
             # 받은 지 7일 지난 항목은 레지스트리가 스스로 지운다. 그래도 커지면 cleanup CronJob이 비운다
@@ -94,7 +92,14 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /var/lib/registry
+            - name: config
+              mountPath: /etc/distribution/config.yml
+              subPath: config.yml
+              readOnly: true
       volumes:
+        - name: config
+          configMap:
+            name: registry-config
         - name: data
           hostPath:
             path: /var/lib/ci-cache/registry-mirror

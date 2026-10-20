@@ -306,7 +306,7 @@ Actions Runner Controller(러너 스케일 셋 모드)로 GitHub Actions self-ho
 | Docker 캐시 | 앱 `ci-cache`(ns `ci-cache`). dind dockerd `--registry-mirror=http://registry-mirror.ci-cache.svc.cluster.local:5000`, env `INFRALENS_CI_DOCKERHUB_MIRROR`(미러)·`INFRALENS_CI_BUILD_CACHE`(`build-cache.ci-cache.svc.cluster.local:5000`, BuildKit `type=registry`). HTTP·인증 없음, NetworkPolicy로 러너에서만 |
 | Docker | DinD 네이티브 사이드카 `docker:29.9.1-dind`(privileged), `DOCKER_HOST=unix:///var/run/docker.sock`. `/var/lib/docker`는 emptyDir 40Gi(러너와 함께 삭제) |
 | 이미지 | `ghcr.io/jangjaelee/arc-runner`(위 "자체 이미지") |
-| 격리 | 권한 없는 SA + `automountServiceAccountToken: false`. NetworkPolicy `arc-runners`: 들어오는 연결 전부 차단, 나가는 연결은 DNS와 공인 IP만(Pod·Service·노드·API 서버·집 LAN 불가) |
+| 격리 | 권한 없는 SA + `automountServiceAccountToken: false`. NetworkPolicy `arc-runners`: 들어오는 연결 전부 차단, 나가는 연결은 DNS, ci-cache 레지스트리(TCP 5000), 공인 IP만(그 밖의 Pod·Service·노드·API 서버·집 LAN 불가) |
 | 인증 | GitHub App(infralens 저장소에만 설치) → Vault `secret/arc-infralens/github-app` → ExternalSecret → Secret `arc-runners/arc-infralens-github-app` |
 
 ### GitHub App 준비 (처음 한 번, 레포 밖)

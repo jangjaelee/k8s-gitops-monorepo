@@ -60,11 +60,6 @@ spec:
       containers:
         - name: registry
           image: *registryImage
-          env:
-            - name: REGISTRY_HTTP_ADDR
-              value: :5000
-            - name: REGISTRY_STORAGE_DELETE_ENABLED
-              value: "true"
           ports:
             - name: http
               containerPort: 5000
@@ -91,7 +86,14 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /var/lib/registry
+            - name: config
+              mountPath: /etc/distribution/config.yml
+              subPath: config.yml
+              readOnly: true
       volumes:
+        - name: config
+          configMap:
+            name: registry-config
         - name: data
           hostPath:
             path: /var/lib/ci-cache/build-cache
