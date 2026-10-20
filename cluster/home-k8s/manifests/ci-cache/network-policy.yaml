@@ -1,0 +1,65 @@
+# ci-cache 레지스트리 격리. 들어오는 연결은 arc-runners의 러너 Pod(어느 노드든)에서 5000번만 연다.
+# 나가는 연결은 DNS와, 미러만 인터넷(공인 IP: registry-1.docker.io, auth.docker.io, Docker Hub CDN)을 연다. 빌드 캐시는 밖으로 나가지 않는다.
+# arc-runners 쪽 나가는 허용은 manifests/arc-infralens/network-policy.yaml에 있다.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ci-cache
+  namespace: ci-cache
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: arc-runners
+      ports:
+        - protocol: TCP
+          port: 5000
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: node-local-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: registry-mirror-egress
+  namespace: ci-cache
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: registry-mirror
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443

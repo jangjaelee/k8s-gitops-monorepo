@@ -1,0 +1,125 @@
+# Docker Hub 받기 캐시(프록시 모드). 러너 dind의 dockerd가 --registry-mirror로 쓴다. 미러가 실패하면 dockerd가 Docker Hub로 바로 간다
+# 저장소는 CI 전용 worker-node-04의 hostPath(/var/lib/ci-cache/registry-mirror)라 Pod는 그 노드에만 뜬다. Service는 클러스터 어느 노드의 러너에서든 닿는다.
+# 인증·TLS 없이 HTTP로 받는다. 들어오는 연결은 NetworkPolicy(network-policy.yaml)로 arc-runners 러너에서만 연다.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: registry-mirror
+  namespace: ci-cache
+  labels:
+    app.kubernetes.io/name: registry-mirror
+    app.kubernetes.io/part-of: ci-cache
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate                    # hostPath 하나를 두 Pod가 함께 쓰지 않게
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: registry-mirror
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: registry-mirror
+        app.kubernetes.io/part-of: ci-cache
+      annotations:
+        ci-cache/config-rev: "1"        # registry-config.yaml을 바꾸면 올린다(롤링 재시작)
+    spec:
+      automountServiceAccountToken: false
+      nodeSelector:
+        node-role.kubernetes.io/ci: ""
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: ci
+          effect: NoSchedule
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        # hostPath는 root 소유로 만들어지므로 레지스트리 사용자(1000)에게 디렉터리만 넘긴다
+        - name: init-dir
+          image: &registryImage docker.io/library/registry:3.1.2@sha256:ddf754342cfc8acc51a56d5d0ab6af06826461864460636d8bd5c546dab2a7b8
+          command: ["chown", "1000:1000", "/var/lib/registry"]
+          securityContext:
+            runAsNonRoot: false
+            runAsUser: 0
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+              add: ["CHOWN"]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/registry
+      containers:
+        - name: registry
+          image: *registryImage
+          env:
+            - name: REGISTRY_PROXY_REMOTEURL
+              value: https://registry-1.docker.io
+            # 받은 지 7일 지난 항목은 레지스트리가 스스로 지운다. 그래도 커지면 cleanup CronJob이 비운다
+            - name: REGISTRY_PROXY_TTL
+              value: 168h
+          ports:
+            - name: http
+              containerPort: 5000
+          readinessProbe:
+            httpGet:
+              path: /v2/
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /v2/
+              port: http
+            periodSeconds: 30
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 1Gi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/registry
+            - name: config
+              mountPath: /etc/distribution/config.yml
+              subPath: config.yml
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: registry-config
+        - name: data
+          hostPath:
+            path: /var/lib/ci-cache/registry-mirror
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: registry-mirror
+  namespace: ci-cache
+  labels:
+    app.kubernetes.io/name: registry-mirror
+    app.kubernetes.io/part-of: ci-cache
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: registry-mirror
+  ports:
+    - name: http
+      port: 5000
+      targetPort: http

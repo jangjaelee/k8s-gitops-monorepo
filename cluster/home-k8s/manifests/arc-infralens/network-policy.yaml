@@ -1,4 +1,4 @@
-# arc-runners의 러너 Pod 격리. 들어오는 연결은 모두 막고, 나가는 연결은 DNS와 인터넷(공인 IP)만 연다.
+# arc-runners의 러너 Pod 격리. 들어오는 연결은 모두 막고, 나가는 연결은 DNS, ci-cache 레지스트리, 인터넷(공인 IP)만 연다.
 # Cilium에서 ipBlock(CIDR)은 클러스터 밖(world)만 가리킨다 → 다른 Pod·Service·노드·API 서버로는 나갈 수 없다.
 # 사설 대역을 빼서 집 LAN(192.168.50.0/24: 공유기, LB IP 등)으로도 나가지 않는다.
 # 러너 안 Docker(DinD) 컨테이너 사이 통신은 Pod 네트워크 네임스페이스 안이라 이 정책과 무관하다.
@@ -32,6 +32,14 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
+    # ci-cache의 Docker Hub 미러·BuildKit 캐시 레지스트리(manifests/ci-cache). 저장소는 worker-node-04지만 어느 노드의 러너든 Service로 닿는다
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ci-cache
+      ports:
+        - protocol: TCP
+          port: 5000
     # github.com, ghcr.io, Docker Hub, proxy.golang.org, registry.npmjs.org, Actions 캐시(Azure Blob) 등
     - to:
         - ipBlock:

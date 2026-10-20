@@ -1,0 +1,78 @@
+# 캐시 용량 상한. 매일 05:00 KST(정기 수집 03:00·03:30·04:00 뒤, CI가 드문 때) 디렉터리마다 40GiB를 넘으면 비운다.
+# 미러는 TTL(168h)로도 줄지만 상한을 따로 둔다. 비우는 동안의 미러 받기는 dockerd가 Docker Hub로 바로 가고,
+# 빌드 캐시 push가 실패해도 빌드는 계속되게 워크플로에서 cache-to에 ignore-error=true를 쓴다.
+# node-04 디스크(전체 456G): 러너 5개 × (dind 40Gi + work 20Gi) = 300Gi 최대 + 캐시 80Gi + Go 캐시.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cleanup
+  namespace: ci-cache
+  labels:
+    app.kubernetes.io/name: ci-cache-cleanup
+    app.kubernetes.io/part-of: ci-cache
+spec:
+  schedule: "0 5 * * *"
+  timeZone: Asia/Seoul
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: ci-cache-cleanup
+            app.kubernetes.io/part-of: ci-cache
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          nodeSelector:
+            node-role.kubernetes.io/ci: ""
+          tolerations:
+            - key: dedicated
+              operator: Equal
+              value: ci
+              effect: NoSchedule
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000             # 레지스트리가 쓴 파일의 소유자
+            runAsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: cleanup
+              image: docker.io/library/registry:3.1.2@sha256:ddf754342cfc8acc51a56d5d0ab6af06826461864460636d8bd5c546dab2a7b8
+              command:
+                - sh
+                - -c
+                - |
+                  limit=$((40 * 1024 * 1024))   # KiB
+                  for d in /cache/registry-mirror /cache/build-cache; do
+                    [ -d "$d" ] || continue
+                    used=$(du -sk "$d" | cut -f1)
+                    echo "$d $((used / 1024))MiB"
+                    if [ "$used" -gt "$limit" ]; then
+                      echo "$d 40GiB 초과, 비움"
+                      find "$d" -mindepth 1 -delete
+                    fi
+                  done
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: ["ALL"]
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  memory: 128Mi
+              volumeMounts:
+                - name: cache
+                  mountPath: /cache
+          volumes:
+            - name: cache
+              hostPath:
+                path: /var/lib/ci-cache
+                type: Directory

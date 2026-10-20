@@ -69,6 +69,7 @@ CNI나 Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 �
 | external-secrets | system | external-secrets | external-secrets/external-secrets 2.13.0 + 이 레포 path | v2.13.0 | `helm/external-secrets/values.yaml`, `manifests/external-secrets/` | ClusterSecretStore `vault`, `ServerSideDiff=true` |
 | arc-controller | system | arc-systems | actions-runner-controller-charts/gha-runner-scale-set-controller 0.15.0 (OCI) + 이 레포 path | ARC 0.15.0 | `helm/arc-controller/values.yaml`, `manifests/arc-controller/` | 네임스페이스 arc-systems·arc-runners, `watchSingleNamespace: arc-runners` |
 | arc-infralens | system | arc-runners | actions-runner-controller-charts/gha-runner-scale-set 0.15.0 (OCI) + 이 레포 path | ARC 0.15.0 | `helm/arc-infralens/values.yaml`, `manifests/arc-infralens/` | 러너 스케일 셋 `arc-infralens`(jangjaelee/infralens), DinD, ExternalSecret, NetworkPolicy |
+| ci-cache | system | ci-cache | 이 레포 path | registry 3.1.2 | `manifests/ci-cache/` | CI 러너용 Docker Hub 미러(프록시)·BuildKit 캐시 레지스트리, worker-node-04 hostPath, 아래 "CI 전용 노드" |
 | infralens-poc | default | infralens | github.com/jangjaelee/infralens(비공개) `deploy/helm/infralens` @ e5e63c0 | sha-e5e63c0 | `helm/infralens-poc/values.yaml` | InfraLens PoC, 배포 키 필요(아래 "InfraLens PoC" 절) |
 | kube-state-metrics | system | kube-system | prometheus-community/kube-state-metrics 7.4.0 | v2.19.0 | 기본값 | |
 | metric-server | o11y | kube-system | metrics-server/metrics-server 3.13.0 | v0.8.0 | `helm/metrics-server/values.yaml` | release 이름 `metric-server` |
@@ -145,6 +146,7 @@ Client ──► 192.168.50.200 (Cilium LB IPAM, L2 ARP)
    kubectl apply -f $A/external-secrets.yaml   # Vault 설정(아래 "Vault" 절의 ESO 연동) 후
    kubectl apply -f $C/argocd/repositories/arc-oci.yaml -f $A/arc-controller.yaml
    kubectl apply -f $A/arc-infralens.yaml      # arc-controller Healthy 후, GitHub App 값을 Vault에 넣은 뒤(아래 "ARC" 절)
+   kubectl apply -f $A/ci-cache.yaml           # worker-node-04에 taint·라벨을 붙인 뒤(아래 "CI 전용 노드")
    kubectl apply -f $A/infralens-poc.yaml      # 배포 키 Secret과 InfraLens 쪽 Secret·DB가 있은 뒤(아래 "InfraLens PoC" 절)
    kubectl apply -f $A/kube-state-metrics.yaml -f $A/metric-server.yaml -f $A/kube-prometheus-stack.yaml
    ```
@@ -301,9 +303,10 @@ Actions Runner Controller(러너 스케일 셋 모드)로 GitHub Actions self-ho
 | 러너 | ephemeral(잡 하나 후 삭제), min 0 / max 8, linux/amd64. Pod당 requests 2 CPU·4Gi, 메모리 limit 8Gi(runner·dind 각각 1 CPU·2Gi / 4Gi) |
 | 배치 | CI 전용 worker-node-04를 먼저 채우고(preferred nodeAffinity + taint toleration) 넘치면 일반 워커. node-04에는 메모리 기준 러너 5개 |
 | Go 캐시 | 노드 hostPath `/var/lib/ci-cache/go` → 러너 `/ci-cache/go`(`GOMODCACHE`·`GOCACHE`), `INFRALENS_CI_LOCAL_GO_CACHE=1`이면 워크플로가 setup-go 캐시를 끔. 잡 사이에 남음 |
+| Docker 캐시 | 앱 `ci-cache`(ns `ci-cache`). dind dockerd `--registry-mirror=http://registry-mirror.ci-cache.svc.cluster.local:5000`, env `INFRALENS_CI_DOCKERHUB_MIRROR`(미러)·`INFRALENS_CI_BUILD_CACHE`(`build-cache.ci-cache.svc.cluster.local:5000`, BuildKit `type=registry`). HTTP·인증 없음, NetworkPolicy로 러너에서만 |
 | Docker | DinD 네이티브 사이드카 `docker:29.9.1-dind`(privileged), `DOCKER_HOST=unix:///var/run/docker.sock`. `/var/lib/docker`는 emptyDir 40Gi(러너와 함께 삭제) |
 | 이미지 | `ghcr.io/jangjaelee/arc-runner`(위 "자체 이미지") |
-| 격리 | 권한 없는 SA + `automountServiceAccountToken: false`. NetworkPolicy `arc-runners`: 들어오는 연결 전부 차단, 나가는 연결은 DNS와 공인 IP만(Pod·Service·노드·API 서버·집 LAN 불가) |
+| 격리 | 권한 없는 SA + `automountServiceAccountToken: false`. NetworkPolicy `arc-runners`: 들어오는 연결 전부 차단, 나가는 연결은 DNS, ci-cache 레지스트리(TCP 5000), 공인 IP만(그 밖의 Pod·Service·노드·API 서버·집 LAN 불가) |
 | 인증 | GitHub App(infralens 저장소에만 설치) → Vault `secret/arc-infralens/github-app` → ExternalSecret → Secret `arc-runners/arc-infralens-github-app` |
 
 ### GitHub App 준비 (처음 한 번, 레포 밖)
@@ -347,12 +350,14 @@ kubectl label node worker-node-04 node-role.kubernetes.io/ci=
 - taint는 NoSchedule이라 붙이기 전에 떠 있던 Pod는 남습니다. 러너 말고 다른 Pod가 남았으면 지워서 다른 노드로 보냅니다.
 - taint와 라벨은 노드 객체에 남으므로 재부팅이나 kubelet 재시작에는 그대로입니다. 노드를 지우고 다시 join할 때만 다시 붙입니다. 이때 taint는 kubeadm `JoinConfiguration.nodeRegistration.taints`로 넣을 수 있지만, `node-role.kubernetes.io/*` 라벨은 kubelet이 스스로 붙일 수 없어(NodeRestriction) join 뒤 위 `kubectl label`을 다시 실행합니다. kubelet `config.yaml`의 `registerWithTaints`는 `kubeadm upgrade node`가 덮어쓰므로 쓰지 않습니다.
 - Go 캐시 비우기: 그 노드에서 `sudo rm -rf /var/lib/ci-cache/go`(러너가 없을 때). 빌드 캐시(`build`)는 Go가 5일 안 쓴 항목을 스스로 지우고, 모듈 캐시(`mod`)는 쌓이기만 하니 디스크를 가끔 봅니다.
+- Docker 캐시(`ci-cache`): 저장소는 node-04의 `/var/lib/ci-cache/registry-mirror`·`build-cache`이고, Service라 어느 노드의 러너든 씁니다. 미러는 받은 지 7일(`REGISTRY_PROXY_TTL`) 지나면 지우고, CronJob `ci-cache/cleanup`이 매일 05:00 KST에 디렉터리마다 40GiB를 넘으면 비웁니다. 미러는 Docker Hub(docker.io)만 캐시합니다(ghcr.io 제외). Docker Hub에는 여전히 익명으로 받습니다(공인 IP당 시간당 100회).
 
 되돌리기:
 
 1. 러너 배치·캐시: 이 설정을 넣은 PR을 revert합니다(Argo CD 자동 sync). 이후 러너는 일반 워커에만 뜨고 Actions 캐시를 다시 씁니다.
 2. 노드: `kubectl taint node worker-node-04 dedicated=ci:NoSchedule-` / `kubectl label node worker-node-04 node-role.kubernetes.io/ci-`
-3. 캐시 디렉터리는 노드마다 `sudo rm -rf /var/lib/ci-cache`.
+3. Docker 캐시: 위 PR revert와 함께 `kubectl -n argo-cd delete app ci-cache`(네임스페이스는 남으니 `kubectl delete ns ci-cache`).
+4. 캐시 디렉터리는 노드마다 `sudo rm -rf /var/lib/ci-cache`.
 
 ### 운영
 

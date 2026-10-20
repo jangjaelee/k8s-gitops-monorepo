@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ci-cache
+  namespace: argo-cd
+spec:
+  project: system
+  source:
+    repoURL: https://github.com/jangjaelee/k8s-gitops-monorepo.git
+    targetRevision: main
+    path: cluster/home-k8s/manifests/ci-cache   # CI 러너용 Docker Hub 미러·BuildKit 캐시 레지스트리(worker-node-04)
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ci-cache
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    managedNamespaceMetadata:
+      labels:
+        istio-injection: disabled
+    syncOptions:
+      - ServerSideApply=true
+      - CreateNamespace=true
