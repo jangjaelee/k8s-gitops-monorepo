@@ -8,8 +8,8 @@ runnerScaleSetName: arc-infralens
 
 minRunners: 0
 # 러너 Pod 하나가 requests 2 CPU·4Gi를 쓴다(runner + dind, 아래 template). 8개 = 16 CPU·32Gi.
-# 노드마다 따로 들어가야 한다(2026-10-19, 러너 외 requests 제외): node-01 3개(메모리), node-02 2개(메모리),
-# node-03 3개(CPU) = 8개. 더 올리면 남는 러너는 자리가 날 때까지 Pending. 늘리기 전에 다시 계산한다.
+# CI 전용 worker-node-04(16 CPU·22Gi)에 메모리 기준 5개가 먼저 들어가고, 나머지 3개는 일반 워커로 넘친다(아래 affinity).
+# 일반 워커 여유(2026-10-19): node-01 3개, node-02 2개, node-03 3개. 늘리기 전에 다시 계산한다.
 maxRunners: 8
 
 # Argo CD는 helm lookup을 못 하므로 컨트롤러 ServiceAccount를 직접 적는다(helm/arc-controller/values.yaml, release arc)
@@ -33,16 +33,39 @@ listenerTemplate:
 template:
   spec:
     automountServiceAccountToken: false   # 러너에 클러스터 API 자격 증명을 주지 않는다(SA도 권한 없는 gha-rs-no-permission)
-    topologySpreadConstraints:
-      - maxSkew: 1
-        topologyKey: kubernetes.io/hostname
-        whenUnsatisfiable: ScheduleAnyway
-        labelSelector:
-          matchLabels:
-            actions.github.com/scale-set-name: arc-infralens
+    # CI 전용 노드(worker-node-04, taint dedicated=ci:NoSchedule, 라벨 node-role.kubernetes.io/ci)를 먼저 채우고 넘치면 일반 워커를 쓴다.
+    # 노드 간 분산(topologySpreadConstraints)은 이 우선순위와 부딪혀서 두지 않는다. taint·라벨은 kubectl로 붙인다(README "CI 전용 노드").
+    tolerations:
+      - key: dedicated
+        operator: Equal
+        value: ci
+        effect: NoSchedule
+    affinity:
+      nodeAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+                - key: node-role.kubernetes.io/ci
+                  operator: Exists
     initContainers:
-      - name: init-dind-externals
+      # Go 캐시 hostPath(아래 go-cache)는 root 소유로 만들어지므로 러너 사용자가 쓸 수 있게 디렉터리만 넘긴다(캐시 내용은 재귀로 건드리지 않는다)
+      - name: init-go-cache
         image: &runnerImage ghcr.io/jangjaelee/arc-runner:2.338.0-4031b25@sha256:30f44df23975b05a78c2389e1148b5a04fbe5c5f2442b1100ec277ba4adca516
+        command: ["sh", "-c", "mkdir -p /ci-cache/go/mod /ci-cache/go/build && chown \"$(id -u runner):$(id -g runner)\" /ci-cache/go /ci-cache/go/mod /ci-cache/go/build"]
+        securityContext:
+          runAsUser: 0
+        resources:
+          requests:
+            cpu: 10m
+            memory: 16Mi
+          limits:
+            memory: 64Mi
+        volumeMounts:
+          - name: go-cache
+            mountPath: /ci-cache/go
+      - name: init-dind-externals
+        image: *runnerImage
         command: ["cp"]
         args: ["-r", "/home/runner/externals/.", "/home/runner/tmpDir/"]
         resources:
@@ -95,6 +118,13 @@ template:
             value: unix:///var/run/docker.sock
           - name: RUNNER_WAIT_FOR_DOCKER_IN_SECONDS
             value: "120"
+          # Go 모듈·빌드 캐시를 노드 디스크에 둔다. 워크플로는 INFRALENS_CI_LOCAL_GO_CACHE=1이면 setup-go 캐시(Actions 캐시 608 MiB 받기)를 끈다
+          - name: GOMODCACHE
+            value: /ci-cache/go/mod
+          - name: GOCACHE
+            value: /ci-cache/go/build
+          - name: INFRALENS_CI_LOCAL_GO_CACHE
+            value: "1"
         resources:
           requests:
             cpu: "1"
@@ -106,7 +136,15 @@ template:
             mountPath: /home/runner/_work
           - name: dind-sock
             mountPath: /var/run
+          - name: go-cache
+            mountPath: /ci-cache/go
     volumes:
+      # 노드별 Go 캐시. 일반 워커로 넘친 러너는 그 노드의 (처음엔 빈) 캐시를 쓴다. 여러 러너가 동시에 써도 Go가 잠금을 건다.
+      # 잡 사이에 남으므로 InfraLens 저장소를 공개로 바꾸기 전에 이 스케일 셋과 함께 없앤다(위 4행). 비우려면 노드에서 이 디렉터리를 지운다.
+      - name: go-cache
+        hostPath:
+          path: /var/lib/ci-cache/go
+          type: DirectoryOrCreate
       - name: work
         emptyDir:
           sizeLimit: 20Gi
