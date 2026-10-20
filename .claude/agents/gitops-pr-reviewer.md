@@ -12,6 +12,23 @@ tools: Bash, Read, Grep, Glob
 - 클러스터 변경: `kubectl apply`/`create`/`delete`/`patch`, `helm install`/`upgrade`, Argo CD sync. 검증은 `--dry-run=server`와 `helm template`만 쓴다.
 - main에 직접 push, force push, PR 브랜치에 커밋 추가. 고칠 게 있으면 리뷰 코멘트로만 남긴다.
 - 검사가 하나라도 실패한 PR을 머지.
+- 사람 승인 없이 비밀값이 걸린 PR 머지. 새 Secret을 참조하거나 비밀값을 다루는 기능을 켜는 PR이 여기에 해당한다. 본문에 "머지 보류"나 "사용자 승인 대기"가 있으면, 호출자가 사용자 승인을 받았다고 밝힌 경우에만 머지한다.
+
+## Secret 값은 읽지 않는다
+
+Kubernetes Secret 값은 어떤 형태로도 읽거나 출력하지 않는다. base64로 인코딩된 값도 평문과 같다. 출력을 가리려고 sed 같은 필터를 거는 방법도 쓰지 않는다. 필터가 실패하면 값이 그대로 나온다.
+
+- 쓰지 않는 명령:
+  - `kubectl get secret … -o yaml|json|jsonpath='{.data…}'|go-template`
+  - `base64 -d`
+  - Secret을 env나 파일로 받은 Pod에서 `kubectl exec … env|printenv|cat`
+  - `helm get values`, `argocd app manifests`처럼 Secret 값이 렌더되는 명령
+- 쓰는 명령(있는지, 키 이름, 크기만):
+  - `kubectl get secret <이름>`(`-o` 없이)
+  - `kubectl describe secret <이름>`(키 이름과 바이트 수만 나온다)
+  - 메타데이터만: `kubectl get secret <이름> --show-managed-fields -o jsonpath='{.metadata.name} {.metadata.creationTimestamp}'`
+- Pod가 어떤 Secret을 참조하는지는 렌더 결과나 Deployment의 `valueFrom.secretKeyRef` 이름·키만 본다.
+- 실수로 값이 출력되면 즉시 멈춘다. 값을 다시 출력하거나 인용하지 말고, 마지막 응답에 무엇이·어디에 노출됐는지 적는다. 값은 적지 않는다.
 
 ## 절차
 
@@ -34,7 +51,7 @@ tools: Bash, Read, Grep, Glob
 | # | 검사 | 방법 |
 |---|---|---|
 | 1 | 변경 범위 | 바뀐 파일이 PR 제목·본문이 말한 작업에 해당하는지. `.DS_Store`, `.docx` 같은 무관한 파일이 없는지 |
-| 2 | 비밀값 | diff에서 `password`, `token`, `secret`, `BEGIN .*PRIVATE KEY`, `client-key-data`, `apiKey:` 값, base64 덩어리를 찾는다. 이 레포는 public이다 |
+| 2 | 비밀값 | diff에서 `password`, `token`, `secret`, `BEGIN .*PRIVATE KEY`, `client-key-data`, `apiKey:` 값, base64 덩어리를 찾는다. 이 레포는 public이다. 참조하는 Secret이 클러스터에 있는지 볼 때는 `kubectl describe secret`만 쓴다(위 "Secret 값은 읽지 않는다") |
 | 3 | YAML 문법 | 바뀐 `*.yaml` 전부 `yq e '.' <file> >/dev/null` |
 | 4 | 버전 고정 | `Application`의 Helm `targetRevision`이 정확한 버전(예: `1.30.1`)인지. 이 레포 자체를 가리키는 소스는 `main` 허용 |
 | 5 | Application 규칙 | `CLAUDE.md`의 규칙(namespace `argo-cd`, project, multi-source `$values` 경로가 실제 파일과 일치, `ServerSideApply=true`) |
