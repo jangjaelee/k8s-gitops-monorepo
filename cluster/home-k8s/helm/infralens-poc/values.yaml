@@ -25,6 +25,8 @@ database:
     existingSecret: infralens-db-loader
   migrator:
     existingSecret: infralens-db-migrator
+  llm:
+    existingSecret: infralens-db-llm           # AI 채팅 전용 DB 계정(키 url)
 encryption:
   existingSecret: infralens-encryption
 rbac:
@@ -47,3 +49,21 @@ kube:
   cache:
     idleStopAfter: 1h
     warm: [pod, deployment, replicaset, statefulset, daemonset, job, cronjob, horizontalpodautoscaler, service, endpointslice, ingress, ingressclass, networkpolicy, persistentvolumeclaim, node, event, namespace]
+# AI 채팅. API 키는 Secret 이름만 가리킨다(키 api-key, InfraLens 쪽이 infralens ns에 만든다).
+# 켜면 API 서버에 LLM env가 붙고 종료 유예가 길어지며(응답 스트림 마무리), 주간 평가 CronJob infralens-llm-eval이 생긴다.
+llm:
+  enabled: true
+  primary: anthropic
+  secondary: openai
+  anthropic:
+    model: claude-sonnet-5-5
+    apiKey:
+      existingSecret: infralens-llm-anthropic
+  openai:
+    model: gpt-6.1-sol
+    apiKey:
+      existingSecret: infralens-llm-openai
+  limits:
+    monthlyTokenBudget: 5000000
+  eval:
+    enabled: true
