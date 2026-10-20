@@ -277,7 +277,7 @@ sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keyc
 - 업그레이드: Application 파일의 `targetRevision`(커밋일 때는 `image.tag`도)을 한 PR에서 바꾸고, 머지 뒤 `kubectl apply -f argocd/applications/infralens-poc.yaml`. apply 전까지는 옛 차트·옛 이미지 그대로라 둘이 어긋나는 때가 없습니다.
 - 자동 sync(prune, selfHeal)입니다. values 파일의 다른 값은 머지되면 바로 반영됩니다.
 - 차트 밖 리소스(`infralens-pg` StatefulSet·Service, DB·SSO·암호화·LLM Secret, `poc-*` Job)는 InfraLens 쪽이 관리하고 이 앱은 건드리지 않습니다. Dex(`/dex`)는 `infralens-test` 네임스페이스에 있습니다.
-- AI 채팅(`llm.enabled`): API 키 Secret `infralens-llm-anthropic`·`infralens-llm-openai`(키 `api-key`)와 DB 계정 Secret `infralens-db-llm`(키 `url`)이 먼저 있어야 합니다. 켜면 주간 평가 CronJob `infralens-llm-eval`(일요일 05:00 KST)이 생깁니다.
+- AI 채팅(`llm.enabled`): API 키 Secret `infralens-llm-anthropic`·`infralens-llm-openai`(키 `api-key`)와 DB 계정 Secret `infralens-db-llm`(키 `url`)이 먼저 있어야 합니다. `llm.eval.enabled`를 켜면 주간 평가 CronJob `infralens-llm-eval`(일요일 05:00 KST)이 생깁니다. PoC는 비용 때문에 끄고 한도를 낮춰 둡니다(월 토큰 1,000,000, 사용자당 시간 10·하루 30회).
 - 마이그레이션 Job(`infralens-migrate`, Helm 훅)은 Argo CD에서 PreSync 훅으로 sync할 때마다 돕니다.
 - 저장소 인증: GitHub 배포 키(읽기 전용, 제목 `argocd-home-k8s`). 개인 키는 Secret `argo-cd/repo-infralens`에만 있고 레포에는 넣지 않습니다. 다시 만들 때는 아래처럼 합니다.
 

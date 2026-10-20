@@ -63,7 +63,10 @@ llm:
     model: gpt-6.1-sol
     apiKey:
       existingSecret: infralens-llm-openai
+  # 비용 절감(2026-10-20, 개인 선불 크레딧이 시간당 약 0.7달러 줄어서): 월 토큰·사용자별 요청 한도를 낮추고 주간 평가를 끈다.
   limits:
-    monthlyTokenBudget: 5000000
+    monthlyTokenBudget: 1000000
+    userHourly: 10                # 차트 기본 30
+    userDaily: 30                 # 차트 기본 200
   eval:
-    enabled: true
+    enabled: false                # 주간 평가 CronJob을 두지 않는다. 필요할 때 사용자 승인 뒤 수동으로 돌린다
