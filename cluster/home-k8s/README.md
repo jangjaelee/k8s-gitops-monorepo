@@ -10,7 +10,7 @@
 
 | 항목 | 값 |
 |---|---|
-| 구성 | kubeadm, 4노드(control-plane 1 + worker 3), Ubuntu 24.04, 모든 노드 Wi-Fi(192.168.50.0/24) |
+| 구성 | kubeadm, 5노드(control-plane 1 + worker 3 + CI 전용 worker-node-04, 아래 "CI 전용 노드"), Ubuntu 24.04, 모든 노드 Wi-Fi(192.168.50.0/24) |
 | Kubernetes | v1.36.0 |
 | 컨테이너 런타임 | containerd 2.3.6 |
 | CNI | Cilium 1.20.2 — kube-proxy 대체, VXLAN, LB IPAM + L2 announcement, Local Redirect Policy |
@@ -299,6 +299,8 @@ Actions Runner Controller(러너 스케일 셋 모드)로 GitHub Actions self-ho
 | 컨트롤러 | 앱 `arc-controller`, ns `arc-systems`, `watchSingleNamespace: arc-runners`(ClusterRole 없음). 리스너 Pod도 여기 뜹니다 |
 | 스케일 셋 | 앱 `arc-infralens`, ns `arc-runners`, 이름 **`arc-infralens`**(= 워크플로 `runs-on` 값), 저장소 단위 등록 |
 | 러너 | ephemeral(잡 하나 후 삭제), min 0 / max 8, linux/amd64. Pod당 requests 2 CPU·4Gi, 메모리 limit 8Gi(runner·dind 각각 1 CPU·2Gi / 4Gi) |
+| 배치 | CI 전용 worker-node-04를 먼저 채우고(preferred nodeAffinity + taint toleration) 넘치면 일반 워커. node-04에는 메모리 기준 러너 5개 |
+| Go 캐시 | 노드 hostPath `/var/lib/ci-cache/go` → 러너 `/ci-cache/go`(`GOMODCACHE`·`GOCACHE`), `INFRALENS_CI_LOCAL_GO_CACHE=1`이면 워크플로가 setup-go 캐시를 끔. 잡 사이에 남음 |
 | Docker | DinD 네이티브 사이드카 `docker:29.9.1-dind`(privileged), `DOCKER_HOST=unix:///var/run/docker.sock`. `/var/lib/docker`는 emptyDir 40Gi(러너와 함께 삭제) |
 | 이미지 | `ghcr.io/jangjaelee/arc-runner`(위 "자체 이미지") |
 | 격리 | 권한 없는 SA + `automountServiceAccountToken: false`. NetworkPolicy `arc-runners`: 들어오는 연결 전부 차단, 나가는 연결은 DNS와 공인 IP만(Pod·Service·노드·API 서버·집 LAN 불가) |
@@ -331,6 +333,26 @@ kubectl -n arc-runners get ephemeralrunners,pods -w                      # 잡�
 ```
 
 GitHub `jangjaelee/infralens` → Settings → Actions → Runners에 스케일 셋 `arc-infralens`가 보입니다. 워크플로는 `runs-on: arc-infralens`로 씁니다(InfraLens는 저장소 변수 `CI_RUNNER`).
+
+### CI 전용 노드
+
+worker-node-04(16 CPU·22Gi, 디스크 전체 456G·2026-10-20 여유 411G)는 러너 전용입니다. taint와 라벨은 Argo CD가 아니라 kubectl로 붙입니다(노드 객체는 레포로 관리하지 않습니다).
+
+```bash
+kubectl taint node worker-node-04 dedicated=ci:NoSchedule
+kubectl label node worker-node-04 node-role.kubernetes.io/ci=
+```
+
+- DaemonSet(cilium, cilium-envoy, node-local-dns, istio-cni-node)은 모든 NoSchedule taint를 견뎌 이 노드에도 뜹니다. 새 DaemonSet을 넣을 때는 toleration을 확인합니다.
+- taint는 NoSchedule이라 붙이기 전에 떠 있던 Pod는 남습니다. 러너 말고 다른 Pod가 남았으면 지워서 다른 노드로 보냅니다.
+- taint와 라벨은 노드 객체에 남으므로 재부팅이나 kubelet 재시작에는 그대로입니다. 노드를 지우고 다시 join할 때만 다시 붙입니다. 이때 taint는 kubeadm `JoinConfiguration.nodeRegistration.taints`로 넣을 수 있지만, `node-role.kubernetes.io/*` 라벨은 kubelet이 스스로 붙일 수 없어(NodeRestriction) join 뒤 위 `kubectl label`을 다시 실행합니다. kubelet `config.yaml`의 `registerWithTaints`는 `kubeadm upgrade node`가 덮어쓰므로 쓰지 않습니다.
+- Go 캐시 비우기: 그 노드에서 `sudo rm -rf /var/lib/ci-cache/go`(러너가 없을 때). 빌드 캐시(`build`)는 Go가 5일 안 쓴 항목을 스스로 지우고, 모듈 캐시(`mod`)는 쌓이기만 하니 디스크를 가끔 봅니다.
+
+되돌리기:
+
+1. 러너 배치·캐시: 이 설정을 넣은 PR을 revert합니다(Argo CD 자동 sync). 이후 러너는 일반 워커에만 뜨고 Actions 캐시를 다시 씁니다.
+2. 노드: `kubectl taint node worker-node-04 dedicated=ci:NoSchedule-` / `kubectl label node worker-node-04 node-role.kubernetes.io/ci-`
+3. 캐시 디렉터리는 노드마다 `sudo rm -rf /var/lib/ci-cache`.
 
 ### 운영
 
