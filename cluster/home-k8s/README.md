@@ -64,7 +64,7 @@ CNI나 Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 �
 | argo-rollouts | system | argo-rollouts | argo/argo-rollouts 2.43.8 | v1.10.1 | `helm/argo-rollouts/values.yaml` | Gateway API 플러그인 v0.17.0 |
 | kyverno | system | kyverno | kyverno/kyverno 3.9.1 | v1.19.1 | `helm/kyverno/values.yaml` | 엔진, `ServerSideDiff=true` |
 | kyverno-policies | system | kyverno | kyverno/kyverno-policies 3.9.1 + 이 레포 path | v1.19.1 | `helm/kyverno-policies/values.yaml`, `manifests/kyverno-policies/` | PSS restricted 17개 + 모범 사례 2개, **모두 Audit**, `ServerSideDiff=true` |
-| node-local-dns | system | kube-system | deliveryhero/node-local-dns 2.9.2 (OCI) + 이 레포 path | k8s-dns-node-cache 1.26.7 | `helm/node-local-dns/values.yaml`, `manifests/node-local-dns/` | Cilium LRP |
+| node-local-dns | system | kube-system | deliveryhero/node-local-dns 2.9.2 (OCI) + 이 레포 path | k8s-dns-node-cache 1.26.7 | `helm/node-local-dns/values.yaml`, `manifests/node-local-dns/` | Cilium LRP, 외부 이름은 1.1.1.1 → 8.8.8.8 → 공유기 순, serve_stale 1h |
 | vault | system | vault | hashicorp/vault 0.34.1 + 이 레포 path | Vault 2.0.4 | `helm/vault/values.yaml`, `manifests/vault/` | raft 단일 노드, 자동 unseal CronJob |
 | external-secrets | system | external-secrets | external-secrets/external-secrets 2.13.0 + 이 레포 path | v2.13.0 | `helm/external-secrets/values.yaml`, `manifests/external-secrets/` | ClusterSecretStore `vault`, `ServerSideDiff=true` |
 | arc-controller | system | arc-systems | actions-runner-controller-charts/gha-runner-scale-set-controller 0.15.0 (OCI) + 이 레포 path | ARC 0.15.0 | `helm/arc-controller/values.yaml`, `manifests/arc-controller/` | 네임스페이스 arc-systems·arc-runners, `watchSingleNamespace: arc-runners` |
