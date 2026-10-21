@@ -17,7 +17,7 @@
 | `cluster/<cluster>/node-config/` | 노드 OS 설정(Argo CD 미적용, SSH로 설치) |
 | `.claude/agents/` | PR 리뷰·머지 에이전트 |
 
-현재 클러스터: `home-k8s`(kubeadm 4노드, Cilium 1.20.2, Argo CD v3.5.5).
+현재 클러스터: `home-k8s`(kubeadm 5노드, Cilium 1.20.2, Argo CD v3.5.5).
 
 - `cluster/<cluster>/` 안의 파일 주석에 적는 경로(`helm/...`, `manifests/...`, `argocd/applications/...`)는 그 클러스터 폴더 기준이다.
 - Application의 `path`와 `$values` 경로는 레포 루트 기준이라 `cluster/<cluster>/...`로 시작한다.
