@@ -1,6 +1,10 @@
 # Gateway istio-gateway의 infrastructure.parametersRef (gateway.yaml)
 # Istio가 자동 생성하는 리소스에 덮어쓸 값. HPA(min 2, 노드 분산) + PDB로 노드 하나가 빠져도 인그레스 유지.
 # horizontalPodAutoscaler·podDisruptionBudget 키가 있어야 Istio가 HPA·PDB(istio-gateway-istio)를 만든다.
+# service: externalTrafficPolicy Local로 실제 클라이언트 IP를 보존한다(Cluster면 Cilium SNAT로 노드 IP로 보임).
+#   Cilium L2 announcement는 etp=Local이면 Gateway Pod가 있는 노드만 192.168.50.200을 광고한다(l2announcer hasLocalBackends).
+#   리스 노드의 Gateway Pod가 사라지면 리스 만료(기본 15초)까지 vault·argocd·infralens 접속이 끊길 수 있다.
+#   되돌리기: service 키를 지운다. 급하면 kubectl -n istio-system patch svc istio-gateway-istio -p '{"spec":{"externalTrafficPolicy":"Cluster"}}'
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -38,3 +42,6 @@ data:
   podDisruptionBudget: |
     spec:
       minAvailable: 1
+  service: |
+    spec:
+      externalTrafficPolicy: Local
