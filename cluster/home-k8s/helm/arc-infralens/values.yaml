@@ -9,7 +9,7 @@ runnerScaleSetName: arc-infralens
 minRunners: 0
 # 러너 Pod 하나가 requests 3 CPU·4Gi를 쓴다(runner 2 + dind 1 CPU, 각 2Gi, 아래 template). 12개 = 36 CPU·48Gi.
 # CI 전용 worker-node-04(16 CPU·22Gi)에 CPU 기준 5개가 먼저 들어가고, 나머지는 일반 워커로 넘친다(아래 affinity).
-# 일반 워커 여유(2026-10-21, CPU 기준): node-01 3개, node-02 3개, node-03 2개 → 모두 합쳐 13개. 늘리기 전에 다시 계산한다.
+# 일반 워커 여유(2026-10-21): node-01 3개, node-02 2개(메모리 기준), node-03 2개 → 모두 합쳐 12개(여유 0). 늘리기 전에 다시 계산한다.
 maxRunners: 12
 
 # Argo CD는 helm lookup을 못 하므로 컨트롤러 ServiceAccount를 직접 적는다(helm/arc-controller/values.yaml, release arc)
