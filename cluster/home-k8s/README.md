@@ -12,7 +12,7 @@
 |---|---|
 | 구성 | kubeadm, 5노드(control-plane 1 + worker 3 + CI 전용 worker-node-04, 아래 "CI 전용 노드"), Ubuntu 24.04, 모든 노드 Wi-Fi(192.168.50.0/24) |
 | Kubernetes | v1.36.0 |
-| 컨테이너 런타임 | containerd 2.3.6 |
+| 컨테이너 런타임 | containerd 2.4.2 |
 | CNI | Cilium 1.20.2 — kube-proxy 대체, VXLAN, LB IPAM + L2 announcement, Local Redirect Policy |
 | GitOps | Argo CD v3.5.5 (chart argo-cd 10.10.5, `https://argocd.awx.kr`, Google 로그인) |
 | Service mesh | Istio 1.30.3 sidecar 모드 + istio-cni, revision `1-30-3`(tag `default`) |
