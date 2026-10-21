@@ -89,7 +89,7 @@ CNI나 Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 �
 
 ```
 Client ──► 192.168.50.200 (Cilium LB IPAM, L2 ARP)
-            └─► Service istio-system/istio-gateway-istio (LoadBalancer, Istio 자동 생성)
+            └─► Service istio-system/istio-gateway-istio (LoadBalancer, Istio 자동 생성, externalTrafficPolicy Local: 클라이언트 IP 보존, Gateway Pod 있는 노드만 L2 광고)
                  └─► Gateway istio-system/istio-gateway  (:80 HTTP, :443 HTTPS, 호스트별 listener)
                       └─► HTTPRoute ─► Service ─► Pod
 ```
