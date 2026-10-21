@@ -300,8 +300,8 @@ Actions Runner Controller(러너 스케일 셋 모드)로 GitHub Actions self-ho
 |---|---|
 | 컨트롤러 | 앱 `arc-controller`, ns `arc-systems`, `watchSingleNamespace: arc-runners`(ClusterRole 없음). 리스너 Pod도 여기 뜹니다 |
 | 스케일 셋 | 앱 `arc-infralens`, ns `arc-runners`, 이름 **`arc-infralens`**(= 워크플로 `runs-on` 값), 저장소 단위 등록 |
-| 러너 | ephemeral(잡 하나 후 삭제), min 0 / max 8, linux/amd64. Pod당 requests 2 CPU·4Gi, 메모리 limit 8Gi(runner·dind 각각 1 CPU·2Gi / 4Gi) |
-| 배치 | CI 전용 worker-node-04를 먼저 채우고(preferred nodeAffinity + taint toleration) 넘치면 일반 워커. node-04에는 메모리 기준 러너 5개 |
+| 러너 | ephemeral(잡 하나 후 삭제), min 0 / max 12, linux/amd64. Pod당 requests 3 CPU·4Gi, 메모리 limit 8Gi(runner 2 CPU·dind 1 CPU, 각각 2Gi / 4Gi) |
+| 배치 | CI 전용 worker-node-04를 먼저 채우고(preferred nodeAffinity + taint toleration) 넘치면 일반 워커. node-04에는 CPU 기준 러너 5개(메모리도 20Gi로 들어감) |
 | Go 캐시 | 노드 hostPath `/var/lib/ci-cache/go` → 러너 `/ci-cache/go`(`GOMODCACHE`·`GOCACHE`), `INFRALENS_CI_LOCAL_GO_CACHE=1`이면 워크플로가 setup-go 캐시를 끔. 잡 사이에 남음 |
 | Docker 캐시 | 앱 `ci-cache`(ns `ci-cache`). dind dockerd `--registry-mirror=http://registry-mirror.ci-cache.svc.cluster.local:5000`, env `INFRALENS_CI_DOCKERHUB_MIRROR`(미러)·`INFRALENS_CI_BUILD_CACHE`(`build-cache.ci-cache.svc.cluster.local:5000`, BuildKit `type=registry`). HTTP·인증 없음, NetworkPolicy로 러너에서만 |
 | Docker | DinD 네이티브 사이드카 `docker:29.9.1-dind`(privileged), `DOCKER_HOST=unix:///var/run/docker.sock`. `/var/lib/docker`는 emptyDir 40Gi(러너와 함께 삭제) |
