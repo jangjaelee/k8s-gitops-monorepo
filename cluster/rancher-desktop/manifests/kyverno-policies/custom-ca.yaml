@@ -1,0 +1,47 @@
+# TLS 검사 프록시 CA 주입 (Argo CD app: argocd/applications/kyverno-policies.yaml, README "TLS 검사 프록시")
+# 라벨 custom-ca-certs/inject=true인 네임스페이스의 새 Pod에 ConfigMap custom-ca-certs(키 custom-ca.crt, 레포 밖)를
+# /etc/ssl/certs/custom-ca.crt로 마운트한다. Go 프로그램은 /etc/ssl/certs 안 파일을 모두 신뢰한다(SSL_CERT_FILE이 있어도).
+# 차트에 볼륨을 더할 수 없는 앱(InfraLens: AWS API 인증서가 프록시에서 바뀜)용. ConfigMap이 없으면(optional) 마운트만 비어 있다.
+# autogen을 끈다: Deployment·CronJob 템플릿을 바꾸면 Argo CD가 차이로 보고 되돌린다. Pod 생성 때만 바꾼다.
+# 목록 병합은 server-side apply 규칙(volumes는 name, volumeMounts는 mountPath 기준)이라 기존 항목은 그대로 둔다.
+apiVersion: policies.kyverno.io/v1beta1
+kind: MutatingPolicy
+metadata:
+  name: inject-custom-ca
+  annotations:
+    policies.kyverno.io/title: Inject Custom CA
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      라벨 custom-ca-certs/inject=true 네임스페이스의 Pod에 TLS 검사 프록시 CA(ConfigMap custom-ca-certs)를 마운트한다.
+spec:
+  failurePolicy: Ignore           # Kyverno 장애 시 CA 없이 생성(앱은 뜨고 프록시 대상 API만 x509 실패)
+  autogen:
+    podControllers:
+      controllers: []
+  matchConstraints:
+    namespaceSelector:
+      matchLabels:
+        custom-ca-certs/inject: "true"
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE]
+        resources: [pods]
+  mutations:
+    - patchType: ApplyConfiguration
+      applyConfiguration:
+        expression: >-
+          Object{
+            spec: Object.spec{
+              volumes: [Object.spec.volumes{
+                name: "custom-ca-certs",
+                configMap: Object.spec.volumes.configMap{name: "custom-ca-certs", optional: true}
+              }],
+              containers: object.spec.containers.map(c, Object.spec.containers{
+                name: c.name,
+                volumeMounts: [Object.spec.containers.volumeMounts{
+                  name: "custom-ca-certs", mountPath: "/etc/ssl/certs/custom-ca.crt", subPath: "custom-ca.crt", readOnly: true
+                }]
+              })
+            }
+          }

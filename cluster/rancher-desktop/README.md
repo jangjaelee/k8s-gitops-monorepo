@@ -218,9 +218,9 @@ Mac `/etc/hosts`에도 그 호스트를 `127.0.0.1`로 넣습니다.
 |---|---|---|
 | Argo CD repo-server Helm 차트 받기 | `charts.jetstack.io`, `argoproj.github.io`, `kyverno.github.io`, `prometheus-community.github.io` | `helm/argocd/values.yaml` `repoServer.volumes` |
 | argo-rollouts 플러그인 받기 | `release-assets.githubusercontent.com` | `helm/argo-rollouts/values.yaml` `controller.volumes` |
-| InfraLens AWS 수집 | `sts.amazonaws.com` | (미대응, InfraLens 설치 때) |
+| InfraLens AWS 연결 확인·수집 | `sts.amazonaws.com`, `sts.us-east-1`, `ec2.us-east-1`, `rds.ap-northeast-2` 등(엔드포인트마다 다름) | Kyverno `MutatingPolicy` `inject-custom-ca`(`manifests/kyverno-policies/custom-ca.yaml`) + 네임스페이스 라벨 |
 
-영향 없음: github.com, Istio 차트(GCS), Google 로그인, docker.io·ghcr.io, LLM API.
+영향 없음: github.com, Istio 차트(GCS), Google 로그인, GCP API(`*.googleapis.com`), docker.io·ghcr.io, LLM API.
 
 values는 ConfigMap `custom-ca-certs`(키 `custom-ca.crt`)를 `/etc/ssl/certs/custom-ca.crt`로 마운트합니다(`optional: true`, 없으면 기본 CA만). Go 프로그램은 `/etc/ssl/certs` 안 파일을 모두 읽어 신뢰합니다. **CA 인증서는 레포에 넣지 않고** 클러스터에만 만듭니다. 프록시 CA의 중간·루트 인증서를 Mac 시스템 키체인에서 꺼내 한 파일(PEM)로 합칩니다.
 
@@ -228,11 +228,18 @@ values는 ConfigMap `custom-ca-certs`(키 `custom-ca.crt`)를 `/etc/ssl/certs/cu
 # <프록시 CA 이름>: 키체인 접근 → 시스템 키체인에서 확인. 체인 전체(중간 + 루트)를 넣는다
 security find-certificate -a -c "<프록시 CA 이름>" -p /Library/Keychains/System.keychain > custom-ca.crt
 echo | openssl s_client -connect charts.jetstack.io:443 -servername charts.jetstack.io -CAfile custom-ca.crt 2>/dev/null | grep 'Verify return code'   # 0 (ok)
-for ns in argo-cd argo-rollouts; do
+for ns in argo-cd argo-rollouts infralens; do
   kubectl create namespace $ns --dry-run=client -o yaml | kubectl apply -f -
   kubectl -n $ns create configmap custom-ca-certs --from-file=custom-ca.crt --dry-run=client -o yaml | kubectl apply -f -
 done
 kubectl -n argo-cd rollout restart deploy/argocd-repo-server   # ConfigMap을 바꾼 뒤(subPath 마운트는 자동 갱신 안 됨)
+```
+
+차트에 볼륨을 더할 수 없는 앱(InfraLens)은 Kyverno `MutatingPolicy` `inject-custom-ca`가 넣습니다. 네임스페이스에 라벨을 붙이면 그 뒤에 만드는 Pod에 같은 ConfigMap을 `/etc/ssl/certs/custom-ca.crt`로 마운트합니다(Pod 생성 때만, Deployment 템플릿은 그대로라 Argo CD 차이 없음). 이미 떠 있는 Pod는 재시작해야 반영됩니다.
+
+```bash
+kubectl label namespace infralens custom-ca-certs/inject=true
+kubectl -n infralens rollout restart deploy/infralens-app deploy/infralens-kube-gateway   # 수집 CronJob은 다음 실행부터
 ```
 
 프록시가 없는 네트워크에서는 ConfigMap이 있어도 해가 없습니다.
