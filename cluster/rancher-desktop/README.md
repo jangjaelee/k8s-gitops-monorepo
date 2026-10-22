@@ -73,7 +73,7 @@ Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 직접 �
 | kyverno | system | kyverno | kyverno/kyverno 3.9.1 | v1.19.1 | `helm/kyverno/values.yaml` | 엔진, `ServerSideDiff=true` |
 | kyverno-policies | system | kyverno | kyverno/kyverno-policies 3.9.1 + 이 레포 path | v1.19.1 | `helm/kyverno-policies/values.yaml`, `manifests/kyverno-policies/` | PSS restricted 17개 + 모범 사례 2개, **모두 Audit**, `ServerSideDiff=true` |
 | infralens-dex | default | infralens-test | 이 레포 path @ main | Dex v2.45.1 | `manifests/infralens-dex/` | InfraLens 로그인 IdP, issuer `https://infralens.awx.kr/dex`, memory storage |
-| infralens-poc | default | infralens | github.com/jangjaelee/infralens(비공개) `deploy/helm/infralens` @ 86448ec | sha-86448ec | `helm/infralens-poc/values.yaml` | InfraLens PoC, 배포 키 필요, AI 채팅은 사용자 키(BYOK)만(아래 "InfraLens PoC" 절) |
+| infralens-poc | default | infralens | github.com/jangjaelee/infralens(비공개) `deploy/helm/infralens` @ d2ab8ae | sha-d2ab8ae (ghcr.io/jangjaelee) | `helm/infralens-poc/values.yaml` | InfraLens PoC, 배포 키 필요, AI 채팅은 사용자 키(BYOK)만(아래 "InfraLens PoC" 절) |
 | kube-state-metrics | system | kube-system | prometheus-community/kube-state-metrics 7.4.0 | v2.19.0 | 기본값 | |
 | kube-prometheus-stack | o11y | prometheus-operator | prometheus-community/kube-prometheus-stack 84.1.0 | operator v0.90.1 | `helm/prometheus-operator/values.yaml` | operator만(Prometheus·Grafana·Alertmanager 끔) |
 
@@ -298,7 +298,7 @@ Rancher Desktop에서 "Reset Kubernetes"를 하면 Secret도 지워지므로 다
 
 - 차트는 `jangjaelee/infralens`(비공개)의 `deploy/helm/infralens`를 릴리스 태그(예: `v0.1.0`)로 고정합니다. 커밋으로 올릴 때는 `targetRevision`을 커밋으로, `image.tag`를 Application의 `helm.parameters`에 둡니다.
 - 업그레이드: Application 파일의 `targetRevision`(커밋일 때는 `image.tag`도)을 한 PR에서 바꾸고, 머지 뒤 `kubectl apply -f cluster/rancher-desktop/argocd/applications/infralens-poc.yaml`.
-- 이미지는 `linux/amd64`·`linux/arm64` 멀티 아키텍처라 노드(arm64)에서 네이티브로 돕니다(`sha-cdbdf87`부터, InfraLens `publish-arm64` 워크플로). amd64 전용 태그로 되돌리면 QEMU 에뮬레이션에서 Steampipe가 plugin manager를 찾지 못해(`/proc/<pid>/exe`가 `qemu-x86_64`) 클라우드 수집이 모두 실패합니다. 태그를 올리기 전에 `docker buildx imagetools inspect docker.io/cine0831/infralens-collector:<태그>`로 arm64가 있는지 확인합니다.
+- 이미지는 `linux/amd64`·`linux/arm64` 멀티 아키텍처라 노드(arm64)에서 네이티브로 돕니다(`sha-cdbdf87`부터, InfraLens `publish-arm64` 워크플로). amd64 전용 태그로 되돌리면 QEMU 에뮬레이션에서 Steampipe가 plugin manager를 찾지 못해(`/proc/<pid>/exe`가 `qemu-x86_64`) 클라우드 수집이 모두 실패합니다. 태그를 올리기 전에 `docker buildx imagetools inspect ghcr.io/jangjaelee/infralens-collector:<태그>`로 arm64가 있는지 확인합니다.
 - 설치 전에 만들 것(차트 밖, 레포에 넣지 않음). 순서대로 만듭니다.
 
   | 준비물 | 키 | 만드는 법 |
