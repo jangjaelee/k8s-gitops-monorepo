@@ -24,6 +24,18 @@ RUN apt-get update \
         file xz-utils zstd zip \
     && rm -rf /var/lib/apt/lists/*
 
+# Playwright Chromium 시스템 라이브러리·도구·글꼴. playwright-core 1.64.1(infralens src/web)의 ubuntu24.04-x64
+# tools + chromium 목록 그대로다(npx playwright install-deps chromium이 까는 것). 미리 넣어 두면 e2e의 --with-deps가
+# apt를 건너뛴다(2026-10-22 security.ubuntu.com Hash Sum mismatch로 e2e 반복 실패). Playwright를 올리면 목록을 다시 맞춘다.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        xvfb fonts-noto-color-emoji fonts-unifont libfontconfig1 libfreetype6 xfonts-cyrillic xfonts-scalable \
+        fonts-liberation fonts-ipafont-gothic fonts-wqy-zenhei fonts-tlwg-loma-otf fonts-freefont-ttf \
+        libasound2t64 libatk-bridge2.0-0t64 libatk1.0-0t64 libatspi2.0-0t64 libcairo2 libcups2t64 libdbus-1-3 \
+        libdrm2 libgbm1 libglib2.0-0t64 libnspr4 libnss3 libpango-1.0-0 libx11-6 libxcb1 libxcomposite1 \
+        libxdamage1 libxext6 libxfixes3 libxkbcommon0 libxrandr2 \
+    && rm -rf /var/lib/apt/lists/*
+
 # helm 4, yq(mikefarah, 호스팅 러너와 같은 Go 구현)
 RUN curl -fsSL -o /tmp/helm.tgz "https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz" \
     && echo "${HELM_SHA256}  /tmp/helm.tgz" | sha256sum -c - \

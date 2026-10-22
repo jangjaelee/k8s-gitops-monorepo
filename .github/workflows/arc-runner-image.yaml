@@ -68,7 +68,9 @@ jobs:
             y="$(yq --version)"; [[ "$y" == *mikefarah* ]]; echo "$y"
             docker --version; docker buildx version
             tar --version | sed -n 1p; unzip -v | sed -n 1p; zstd --version; xz --version | sed -n 1p
-            gcc --version | sed -n 1p; make --version | sed -n 1p; file --version | sed -n 1p'
+            gcc --version | sed -n 1p; make --version | sed -n 1p; file --version | sed -n 1p
+            # Playwright Chromium 의존 패키지(Dockerfile 목록)가 모두 깔렸는지
+            for p in xvfb fonts-noto-color-emoji libnss3 libgbm1 libasound2t64 libatk-bridge2.0-0t64 libcups2t64 libxkbcommon0; do dpkg -s "$p" >/dev/null; done; echo "playwright deps ok"'
       - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         if: github.event_name != 'pull_request'
         with:

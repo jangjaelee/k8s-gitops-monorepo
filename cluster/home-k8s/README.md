@@ -270,7 +270,7 @@ sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keyc
 | `ghcr.io/jangjaelee/arc-runner` (공개) | `images/arc-runner/` | `.github/workflows/arc-runner-image.yaml` | ARC 러너 |
 
 - PR에서는 빌드와 도구 확인만, main에 머지되면 `<러너 버전>-<커밋 7자리>`와 `<러너 버전>` 태그로 push합니다. digest는 Actions 실행 요약에 나옵니다.
-- `arc-runner`: 공식 `ghcr.io/actions/actions-runner`(Ubuntu 24.04, git·curl·jq·unzip·docker CLI·buildx)에 python3(+PyYAML)·ruby·helm 4·yq(mikefarah)·gcc·make·file·xz·zstd·zip을 더합니다. Go·Node는 워크플로의 setup 액션이 받습니다.
+- `arc-runner`: 공식 `ghcr.io/actions/actions-runner`(Ubuntu 24.04, git·curl·jq·unzip·docker CLI·buildx)에 python3(+PyYAML)·ruby·helm 4·yq(mikefarah)·gcc·make·file·xz·zstd·zip과 Playwright Chromium 의존 패키지(playwright-core 1.64.1의 ubuntu24.04 tools+chromium 33개, e2e `--with-deps`가 apt를 건너뛰게)를 더합니다. Go·Node는 워크플로의 setup 액션이 받습니다.
 - 러너는 자동 업데이트 없이 돕니다. 새 러너 릴리스 후 30일 안에 `FROM`을 올려야 GitHub이 잡을 계속 보냅니다. Dependabot(`.github/dependabot.yml`)이 매주 `FROM` 갱신 PR을 엽니다. helm·yq 버전은 Dockerfile `ARG`(체크섬 포함)로 직접 올립니다.
 
 ## InfraLens PoC
