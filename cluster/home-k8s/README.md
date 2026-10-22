@@ -73,7 +73,7 @@ CNI나 Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 �
 | infralens-poc | default | infralens | github.com/jangjaelee/infralens(비공개) `deploy/helm/infralens` @ 86448ec | sha-86448ec | `helm/infralens-poc/values.yaml` | InfraLens PoC, 배포 키 필요(아래 "InfraLens PoC" 절) |
 | kube-state-metrics | system | kube-system | prometheus-community/kube-state-metrics 7.4.0 | v2.19.0 | 기본값 | |
 | metric-server | o11y | kube-system | metrics-server/metrics-server 3.13.0 | v0.8.0 | `helm/metrics-server/values.yaml` | release 이름 `metric-server` |
-| kube-prometheus-stack | o11y | prometheus-operator | prometheus-community/kube-prometheus-stack 84.1.0 | operator v0.90.1 | `helm/prometheus-operator/values.yaml` | |
+| kube-prometheus-stack | o11y | prometheus-operator | prometheus-community/kube-prometheus-stack 84.1.0 | operator v0.90.1, Prometheus v3.11.3 | `helm/prometheus-operator/values.yaml` | Prometheus 1개(보존 7일, local-path 10Gi). Istio 수집: PodMonitor `envoy-stats`, ServiceMonitor `istiod`. Grafana·Alertmanager·node-exporter 끔 |
 
 ### Argo CD 저장소 등록
 
