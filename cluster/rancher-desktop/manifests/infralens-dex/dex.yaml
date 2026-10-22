@@ -44,7 +44,9 @@ spec:
             limits: { memory: 128Mi }
           volumeMounts:
             - { name: config, mountPath: /etc/dex, readOnly: true }
+            - { name: tmp, mountPath: /tmp }      # docker-entrypoint가 설정을 /tmp에 렌더링한다(읽기 전용 루트)
       volumes:
+        - { name: tmp, emptyDir: {} }
         - name: config
           configMap:
             name: dex
