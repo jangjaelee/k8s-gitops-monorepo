@@ -260,7 +260,15 @@ Rancher Desktop에서 "Reset Kubernetes"를 하면 Secret도 지워지므로 다
 
 - 차트는 `jangjaelee/infralens`(비공개)의 `deploy/helm/infralens`를 릴리스 태그(예: `v0.1.0`)로 고정합니다. 커밋으로 올릴 때는 `targetRevision`을 커밋으로, `image.tag`를 Application의 `helm.parameters`에 둡니다.
 - 업그레이드: Application 파일의 `targetRevision`(커밋일 때는 `image.tag`도)을 한 PR에서 바꾸고, 머지 뒤 `kubectl apply -f cluster/rancher-desktop/argocd/applications/infralens-poc.yaml`.
-- **이미지는 linux/arm64가 있어야 합니다.** 노드가 arm64라 amd64 전용 이미지는 `exec format error`로 뜨지 않습니다. 설치 전에 `docker buildx imagetools inspect <이미지>:sha-9748236`로 확인합니다.
+- **이미지는 amd64 전용이라 QEMU 에뮬레이션으로 돌립니다.** InfraLens는 `linux/amd64`만 빌드합니다(InfraLens 레포 `publish.yml`, 기획 로그 D37). 아래처럼 동작합니다.
+  - Rancher Desktop VM에 QEMU binfmt(`qemu-x86_64`)가 등록돼 있어 amd64 바이너리가 그대로 실행됩니다. CPU는 네이티브보다 몇 배 느립니다.
+  - kubelet은 플랫폼 없이 받으므로 `no matching manifest for linux/arm64/v8`로 실패합니다. 그래서 **이미지를 미리 받아 둡니다**. k3s(`--docker`)와 Mac의 `docker`가 같은 dockerd를 쓰고, `sha-*` 태그는 `IfNotPresent`라 kubelet이 받은 이미지를 그대로 씁니다.
+    ```bash
+    for n in app collector web; do docker pull --platform linux/amd64 docker.io/cine0831/infralens-${n}:sha-9748236; done
+    ```
+  - 업그레이드할 때는 새 태그를 먼저 받은 뒤 `targetRevision`·`image.tag`를 올립니다.
+  - 이미지가 지워지면(Reset Kubernetes, 디스크 85% 이상에서 kubelet 이미지 GC, `docker image prune -a`) 다음 Pod 생성 때 `ImagePullBackOff`가 납니다. 위 명령을 다시 실행합니다.
+  - InfraLens가 arm64 이미지를 내면 이 절차는 필요 없습니다.
 - 차트 밖 리소스는 InfraLens 쪽이 이 클러스터에 먼저 만들어야 합니다: `infralens` 네임스페이스, `infralens-pg` StatefulSet·Service, Secret(`infralens-db-app`·`-loader`·`-migrator`·`-llm`, `infralens-encryption`, `infralens-sso`, `infralens-gw-ca`, `infralens-llm-anthropic`·`-openai`), Dex(`infralens-test` 네임스페이스, `/dex`).
 - `infralens-gw-ca`(키 `ca.crt`)는 **이 클러스터의** 사설 CA로 만듭니다(home-k8s CA가 아님). 앱이 `https://infralens.awx.kr/dex`를 CoreDNS rewrite로 이 클러스터 Gateway에서 받으므로 이 CA로 검증합니다.
 - `app.trustedProxyCIDRs`는 k3s Pod CIDR `10.42.0.0/16`입니다.
@@ -280,7 +288,7 @@ rm -rf $d
 
 - **단일 노드**: istiod·Gateway·Argo CD 등 모두 레플리카 1이라 Pod 재시작이나 VM 재시작 동안 서비스가 끊깁니다. PDB를 두지 않습니다.
 - **자원**: 6 CPU·16Gi를 모든 구성요소가 나눠 씁니다. 부족하면 Rancher Desktop 설정(Virtual Machine → Memory/CPUs)에서 늘립니다.
-- **arm64**: 새 구성요소·자체 이미지·플러그인 바이너리(argo-rollouts처럼 아키텍처별 파일을 받는 것)는 arm64용인지 확인합니다.
+- **arm64**: 새 구성요소·자체 이미지·플러그인 바이너리(argo-rollouts처럼 아키텍처별 파일을 받는 것)는 arm64용인지 확인합니다. amd64 전용 이미지는 InfraLens처럼 미리 받아 에뮬레이션으로 돌립니다(느림).
 - **호스트 이름 공유**: home-k8s와 같은 `*.awx.kr`을 쓰므로 Mac에서는 `/etc/hosts`로 어느 클러스터에 붙을지 정합니다. 이 Mac에서 home-k8s에 접속하려면 항목을 다시 주석 처리합니다.
 - **Rancher Desktop Reset**: "Reset Kubernetes"는 클러스터를 새로 만듭니다. "처음부터 올릴 때"를 다시 하고 Secret·사설 CA 신뢰 등록도 다시 합니다.
 - 사설 CA 인증서이므로 CA를 신뢰 등록하지 않은 기기에서는 인증서 경고가 납니다.
