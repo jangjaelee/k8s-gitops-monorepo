@@ -52,7 +52,8 @@ kube:
   cache:
     idleStopAfter: 1h
     warm: [pod, deployment, replicaset, statefulset, daemonset, job, cronjob, horizontalpodautoscaler, service, endpointslice, ingress, ingressclass, networkpolicy, persistentvolumeclaim, node, event, namespace]
-# AI 채팅. API 키는 Secret 이름만 가리킨다(키 api-key, InfraLens 쪽이 infralens ns에 만든다).
+# AI 채팅. 조직 키 Secret 없이 사용자 키(BYOK)만 쓴다: 로그인한 사용자가 화면에서 자기 LLM API 키를 넣는다
+# (encryption 키 링으로 암호화, 최대 30일 보관). 모델 이름은 사용자 키에도 쓴다.
 # 켜면 API 서버에 LLM env가 붙고 종료 유예가 길어지며(응답 스트림 마무리), 주간 평가 CronJob infralens-llm-eval이 생긴다.
 llm:
   enabled: true
@@ -60,13 +61,12 @@ llm:
   secondary: openai
   anthropic:
     model: claude-sonnet-5-5
-    apiKey:
-      existingSecret: infralens-llm-anthropic
   openai:
     model: gpt-6-luna
     reasoningEffort: none          # Chat Completions에서 tool을 쓰려면 필요(차트 #355)
-    apiKey:
-      existingSecret: infralens-llm-openai
+  byok:
+    enabled: true
+    orgKeyFallback: false         # 조직 키가 없으므로 사용자 키가 없으면 채팅을 쓰지 않는다
   # 비용 절감(2026-10-20, 개인 선불 크레딧이 시간당 약 0.7달러 줄어서): 월 토큰·사용자별 요청 한도를 낮추고 주간 평가를 끈다.
   limits:
     monthlyTokenBudget: 1000000

@@ -1,0 +1,61 @@
+# Dex Deployment·Service (Argo CD app: argocd/applications/infralens-dex.yaml)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dex
+  namespace: infralens-test
+  labels: { app.kubernetes.io/name: dex }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: dex }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: dex }
+      annotations:
+        checksum/config: v1             # config.yaml을 바꾸면 이 값도 바꿔 재시작시킨다(memory storage라 subPath 없이도 재시작 필요)
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001                 # 이미지 사용자 dex(1001)
+        runAsGroup: 1001
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: dex
+          image: ghcr.io/dexidp/dex:v2.45.1   # linux/arm64 포함
+          args: [dex, serve, /etc/dex/config.yaml]
+          envFrom:
+            - secretRef:
+                name: dex-secrets       # INFRALENS_CLIENT_SECRET, ADMIN_PASSWORD_HASH (레포 밖)
+          ports:
+            - { name: http, containerPort: 5556 }
+            - { name: telemetry, containerPort: 5558 }
+          readinessProbe:
+            httpGet: { path: /healthz/ready, port: telemetry }
+          livenessProbe:
+            httpGet: { path: /healthz/live, port: telemetry }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+            limits: { memory: 128Mi }
+          volumeMounts:
+            - { name: config, mountPath: /etc/dex, readOnly: true }
+      volumes:
+        - name: config
+          configMap:
+            name: dex
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dex
+  namespace: infralens-test
+  labels: { app.kubernetes.io/name: dex }
+spec:
+  selector: { app.kubernetes.io/name: dex }
+  ports:
+    - { name: http, port: 5556, targetPort: http }

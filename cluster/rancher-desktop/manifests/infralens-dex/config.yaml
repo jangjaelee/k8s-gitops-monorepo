@@ -1,0 +1,32 @@
+# Dex 설정 (Argo CD app: argocd/applications/infralens-dex.yaml)
+# issuer는 Gateway(listener https-infralens)의 /dex 경로. Pod에서도 같은 주소로 닿는다(manifests/gateways/coredns-custom.yaml).
+# 비밀값은 env로만 받는다: 클라이언트 secret(secretEnv), 관리자 비밀번호 bcrypt 해시(hashFromEnv) ← Secret dex-secrets
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dex
+  namespace: infralens-test
+data:
+  config.yaml: |
+    issuer: https://infralens.awx.kr/dex
+    storage:
+      type: memory                    # 재시작하면 세션·토큰이 사라짐(다시 로그인). 사용자·클라이언트는 이 설정에서 온다
+    web:
+      http: 0.0.0.0:5556
+    telemetry:
+      http: 0.0.0.0:5558
+    oauth2:
+      skipApprovalScreen: true
+    enablePasswordDB: true
+    staticClients:
+      - id: infralens
+        name: InfraLens
+        secretEnv: INFRALENS_CLIENT_SECRET
+        redirectURIs:
+          - https://infralens.awx.kr/auth/callback
+    staticPasswords:
+      # userID는 helm/infralens-poc/values.yaml app.sso.adminSubjects(Dex sub = userID + 커넥터 local)와 맞춘다
+      - email: admin@infralens.local
+        username: admin
+        userID: 00000000-0000-0000-0000-000000000001
+        hashFromEnv: ADMIN_PASSWORD_HASH
