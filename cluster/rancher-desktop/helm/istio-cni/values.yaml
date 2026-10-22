@@ -1,0 +1,8 @@
+# chart: istio/cni 1.30.3  (Argo CD app: argocd/applications/istio-cni.yaml)
+# sidecar 모드용 istio-cni. k3s Flannel conflist(10-flannel.conflist)에 플러그인으로 체이닝된다.
+# platform k3s 프로필이 k3s 경로를 쓴다: cniConfDir /var/lib/rancher/k3s/agent/etc/cni/net.d, cniBinDir /var/lib/rancher/k3s/data/cni
+# (Rancher Desktop이 /etc/cni/net.d에도 conflist를 두지만 k3s 런타임은 agent 쪽을 읽는다)
+global:
+  platform: k3s
+cni:
+  chained: true

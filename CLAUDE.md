@@ -17,7 +17,9 @@
 | `cluster/<cluster>/node-config/` | 노드 OS 설정(Argo CD 미적용, SSH로 설치) |
 | `.claude/agents/` | PR 리뷰·머지 에이전트 |
 
-현재 클러스터: `home-k8s`(kubeadm 5노드, Cilium 1.20.2, Argo CD v3.5.5).
+현재 클러스터(이름 = kubectl context)
+- `home-k8s`: 집 홈랩, kubeadm 5노드, Cilium 1.20.2, Argo CD v3.5.5
+- `rancher-desktop`: 로컬 Mac의 Rancher Desktop, k3s 단일 노드(arm64), Flannel·ServiceLB, Argo CD v3.5.5
 
 - `cluster/<cluster>/` 안의 파일 주석에 적는 경로(`helm/...`, `manifests/...`, `argocd/applications/...`)는 그 클러스터 폴더 기준이다.
 - Application의 `path`와 `$values` 경로는 레포 루트 기준이라 `cluster/<cluster>/...`로 시작한다.
@@ -34,13 +36,14 @@
 
 ## Argo CD로 관리하지 않는 것
 
-CNI나 Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 직접 적용한다. values 파일 첫 줄 주석에 차트·버전을 적는다. 명령은 레포 루트에서 실행한다.
+CNI나 Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 직접 적용한다. values 파일 첫 줄 주석에 차트·버전을 적는다. 명령은 레포 루트에서 해당 클러스터 context로 실행한다.
+rancher-desktop은 k3s 기본 구성요소(Flannel, CoreDNS, ServiceLB, local-path-provisioner, metrics-server)를 그대로 쓰고 레포로 관리하지 않는다.
 
-- Cilium(`cluster/home-k8s/helm/cilium/values.yaml`)
+- Cilium(home-k8s만, `cluster/home-k8s/helm/cilium/values.yaml`)
   `helm upgrade cilium cilium/cilium -n kube-system --version <고정> -f cluster/home-k8s/helm/cilium/values.yaml --force-conflicts`
   ConfigMap만 바뀌면 `kubectl -n kube-system rollout restart ds/cilium`이 필요하다.
-- Argo CD(`cluster/home-k8s/helm/argocd/values.yaml`)
-  `helm upgrade argocd argo/argo-cd -n argo-cd --version <고정> -f cluster/home-k8s/helm/argocd/values.yaml --force-conflicts`
+- Argo CD(`cluster/<cluster>/helm/argocd/values.yaml`)
+  `helm upgrade argocd argo/argo-cd -n argo-cd --version <고정> -f cluster/<cluster>/helm/argocd/values.yaml --force-conflicts`
 
 ## 작업 흐름
 

@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kyverno-policies
+  namespace: argo-cd
+  annotations:
+    argocd.argoproj.io/compare-options: ServerSideDiff=true   # kyverno 앱과 같은 이유(policies.kyverno.io 클라이언트 diff 오탐)
+spec:
+  project: system
+  sources:
+    - repoURL: https://kyverno.github.io/kyverno/
+      chart: kyverno-policies
+      targetRevision: 3.9.1
+      helm:
+        releaseName: kyverno-policies
+        valueFiles:
+          - $values/cluster/rancher-desktop/helm/kyverno-policies/values.yaml
+    - repoURL: https://github.com/jangjaelee/k8s-gitops-monorepo.git
+      targetRevision: main
+      ref: values
+    - repoURL: https://github.com/jangjaelee/k8s-gitops-monorepo.git
+      targetRevision: main
+      path: cluster/rancher-desktop/manifests/kyverno-policies   # 모범 사례 정책(latest 태그, requests/limits)
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kyverno
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true

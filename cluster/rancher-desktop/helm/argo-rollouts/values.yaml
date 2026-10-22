@@ -1,0 +1,45 @@
+# chart: argo/argo-rollouts 2.43.8 (Argo Rollouts v1.10.1)  (Argo CD app: argocd/applications/argo-rollouts.yaml)
+installCRDs: true
+keepCRDs: true                 # 앱을 지워도 Rollout CRD(와 Rollout 리소스)는 남긴다
+
+controller:
+  replicas: 1                  # 홈랩 단일 인스턴스 (기본 2)
+  resources:                   # 실사용 8m / 35Mi (2026-10-17, kubectl top). Kyverno require-requests-limits
+    requests:
+      cpu: 20m
+      memory: 64Mi
+    limits:
+      memory: 256Mi
+  # Gateway API 트래픽 라우터 플러그인 (argoproj-labs/rollouts-plugin-trafficrouter-gatewayapi v0.17.0)
+  # controller가 시작할 때 내려받는다. 노드가 arm64라 linux-arm64 바이너리. sha256은 GitHub 릴리스 asset digest와 일치 확인.
+  # Rollout에서 strategy.canary.trafficRouting.plugins."argoproj-labs/gatewayAPI".httpRoute 로 HTTPRoute 가중치를 조절한다.
+  trafficRouterPlugins:
+    - name: argoproj-labs/gatewayAPI
+      location: https://github.com/argoproj-labs/rollouts-plugin-trafficrouter-gatewayapi/releases/download/v0.17.0/gatewayapi-plugin-linux-arm64
+      sha256: 5221279f7bf2c9b2c0ff6ed7ff12718ecce1d4892f1ff5e5224bb723cfd0fd92
+
+# 쓰는 트래픽 라우터만 권한을 준다 (Istio, Gateway API). 나머지 제공자 권한은 끈다.
+providerRBAC:
+  enabled: true
+  providers:
+    istio: true
+    gatewayAPI: true           # 다음 단계 Gateway API 플러그인이 HTTPRoute를 수정할 권한
+    smi: false
+    ambassador: false
+    awsLoadBalancerController: false
+    awsAppMesh: false
+    traefik: false
+    apisix: false
+    contour: false
+    glooPlatform: false
+
+# 대시보드는 인증이 없으므로 외부(LB/Gateway)에 노출하지 않는다.
+# 접속: kubectl -n argo-rollouts port-forward svc/argo-rollouts-dashboard 3100:3100 → http://localhost:3100
+dashboard:
+  enabled: true
+  resources:                   # 실사용 1m / 13Mi (2026-10-17)
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 128Mi

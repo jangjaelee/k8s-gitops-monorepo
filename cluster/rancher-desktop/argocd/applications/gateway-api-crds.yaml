@@ -1,0 +1,21 @@
+# Gateway API CRD v1.5.1 standard channel (공식 저장소 config/crd/standard)
+# Istio 1.30이 요구하는 버전. CRD 8개 + ValidatingAdmissionPolicy safe-upgrades(실험 채널·구버전 설치 차단)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gateway-api-crds
+  namespace: argo-cd
+spec:
+  project: system
+  source:
+    repoURL: https://github.com/kubernetes-sigs/gateway-api.git
+    targetRevision: v1.5.1
+    path: config/crd/standard
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: false          # CRD가 지워지면 모든 Gateway·HTTPRoute가 함께 삭제되므로 자동 삭제 금지
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
