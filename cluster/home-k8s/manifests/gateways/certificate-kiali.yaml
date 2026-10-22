@@ -1,0 +1,21 @@
+# kiali.awx.kr 전용 인증서 (사설 CA homelab-ca). Gateway listener https-kiali가 사용
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: kiali-gateway-tls
+  namespace: istio-system
+spec:
+  secretName: kiali-gateway-tls
+  commonName: kiali.awx.kr
+  dnsNames:
+    - kiali.awx.kr
+  duration: 2160h           # 90일
+  renewBefore: 360h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: homelab-ca
