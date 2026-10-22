@@ -1,3 +1,4 @@
+# chart: prometheus-community/kube-prometheus-stack 84.1.0  (Argo CD app: argocd/applications/kube-prometheus-stack.yaml)
 nameOverride: ""
 namespaceOverride: ""
 kubeTargetVersionOverride: ""
@@ -1088,7 +1089,7 @@ prometheusOperator:
   extraVolumeMounts: []
 
 prometheus:
-  enabled: false
+  enabled: true       # 2026-10-22 Kiali용으로 켬(Istio 메트릭)
   agentMode: false
   annotations: {}
   additionalLabels: {}
@@ -1525,7 +1526,7 @@ prometheus:
     ## prometheus resource to be created with selectors based on values in the helm deployment,
     ## which will also match the servicemonitors created
     ##
-    serviceMonitorSelectorNilUsesHelmValues: true
+    serviceMonitorSelectorNilUsesHelmValues: false # 다른 앱이 만든 ServiceMonitor도 수집
 
     ## ServiceMonitors to be selected for target discovery.
     ## If {}, select all ServiceMonitors
@@ -1548,7 +1549,7 @@ prometheus:
     ## prometheus resource to be created with selectors based on values in the helm deployment,
     ## which will also match the podmonitors created
     ##
-    podMonitorSelectorNilUsesHelmValues: true
+    podMonitorSelectorNilUsesHelmValues: false     # 차트 라벨이 없는 PodMonitor도 수집(위 envoy-stats 등)
 
     ## PodMonitors to be selected for target discovery.
     ## If {}, select all PodMonitors
@@ -1616,7 +1617,7 @@ prometheus:
 
     ## How long to retain metrics
     ##
-    retention: 10d
+    retention: 7d
 
     ## Maximum size of metrics
     ## Unit format should be in the form of "50GiB"
@@ -1714,14 +1715,27 @@ prometheus:
 
     ## Resource limits & requests
     ##
-    resources: {}
+    resources:
+      requests:
+        cpu: 100m
+        memory: 512Mi
+      limits:
+        memory: 1536Mi
     # requests:
     #   memory: 400Mi
 
     ## Prometheus StorageSpec for persistent data
     ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/platform/storage.md
     ##
-    storageSpec: {}
+    # local-path(노드 디스크) PVC. 노드에 묶이므로 그 노드가 빠지면 Pod가 뜨지 못한다(홈랩 수준에서 감수)
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: local-path
+          accessModes: [ReadWriteOnce]
+          resources:
+            requests:
+              storage: 10Gi
     ## Using PersistentVolumeClaim
     ##
     #  volumeClaimTemplate:
@@ -2087,8 +2101,53 @@ prometheus:
     ## https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api-reference/api.md#scrapeprotocolstring-alias
     scrapeProtocols: []
   additionalRulesForClusterRole: []
-  additionalServiceMonitors: []
-  additionalPodMonitors: []
+  # Istio 컨트롤 플레인(istiod) 메트릭. revision tag 서비스(istiod-revision-tag-default)도 같은 Pod를 가리키므로 빼서 중복 수집을 막는다
+  additionalServiceMonitors:
+    - name: istiod
+      jobLabel: istio
+      namespaceSelector:
+        matchNames: [istio-system]
+      selector:
+        matchLabels:
+          istio: pilot
+        matchExpressions:
+          - key: istio.io/tag
+            operator: DoesNotExist
+      endpoints:
+        - port: http-monitoring
+          interval: 15s
+  # Istio 데이터 플레인(Envoy) 메트릭. Gateway Pod와 사이드카의 prometheus.io/* 주석(15020 merged metrics)을 따른다(Istio 공식 PodMonitor 예시)
+  additionalPodMonitors:
+    - name: envoy-stats
+      jobLabel: envoy-stats
+      namespaceSelector:
+        any: true
+      selector:
+        matchExpressions:
+          - key: istio-prometheus-ignore
+            operator: DoesNotExist
+      podMetricsEndpoints:
+        - path: /stats/prometheus
+          interval: 15s
+          relabelings:
+            - action: keep
+              sourceLabels: [__meta_kubernetes_pod_container_name]
+              regex: istio-proxy
+            - action: keep
+              sourceLabels: [__meta_kubernetes_pod_annotationpresent_prometheus_io_scrape]
+            - action: replace
+              sourceLabels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+              regex: ([^:]+)(?::\d+)?;(\d+)
+              replacement: $1:$2
+              targetLabel: __address__
+            - action: labeldrop
+              regex: __meta_kubernetes_pod_label_(.+)
+            - action: replace
+              sourceLabels: [__meta_kubernetes_namespace]
+              targetLabel: namespace
+            - action: replace
+              sourceLabels: [__meta_kubernetes_pod_name]
+              targetLabel: pod
 
 thanosRuler:
   enabled: false
