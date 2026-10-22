@@ -303,6 +303,7 @@ Actions Runner Controller(러너 스케일 셋 모드)로 GitHub Actions self-ho
 | 러너 | ephemeral(잡 하나 후 삭제), min 0 / max 12, linux/amd64. Pod당 requests 3 CPU·4Gi, 메모리 limit 8Gi(runner 2 CPU·dind 1 CPU, 각각 2Gi / 4Gi) |
 | 배치 | CI 전용 worker-node-04를 먼저 채우고(preferred nodeAffinity + taint toleration) 넘치면 일반 워커. node-04에는 CPU 기준 러너 5개(메모리도 20Gi로 들어감) |
 | Go 캐시 | 노드 hostPath `/var/lib/ci-cache/go` → 러너 `/ci-cache/go`(`GOMODCACHE`·`GOCACHE`), `INFRALENS_CI_LOCAL_GO_CACHE=1`이면 워크플로가 setup-go 캐시를 끔. 잡 사이에 남음 |
+| Playwright 캐시 | 노드 hostPath `/var/lib/ci-cache/ms-playwright` → runner 컨테이너 `/ci-cache/ms-playwright`(`PLAYWRIGHT_BROWSERS_PATH`). 이미 받은 브라우저 버전은 `npx playwright install`이 건너뜀. 버전당 약 0.5~1GB, 자동 정리 없음. apt 캐시는 두지 않음(러너끼리 잠금 충돌) |
 | Docker 캐시 | 앱 `ci-cache`(ns `ci-cache`). dind dockerd `--registry-mirror=http://registry-mirror.ci-cache.svc.cluster.local:5000`, env `INFRALENS_CI_DOCKERHUB_MIRROR`(미러)·`INFRALENS_CI_BUILD_CACHE`(`build-cache.ci-cache.svc.cluster.local:5000`, BuildKit `type=registry`). HTTP·인증 없음, NetworkPolicy로 러너에서만 |
 | Docker | DinD 네이티브 사이드카 `docker:29.9.1-dind`(privileged), `DOCKER_HOST=unix:///var/run/docker.sock`. `/var/lib/docker`는 emptyDir 40Gi(러너와 함께 삭제) |
 | 이미지 | `ghcr.io/jangjaelee/arc-runner`(위 "자체 이미지") |
