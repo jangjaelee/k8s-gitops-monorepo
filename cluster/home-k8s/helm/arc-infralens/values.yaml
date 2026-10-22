@@ -51,7 +51,7 @@ template:
     initContainers:
       # Go·Playwright 캐시 hostPath(아래 go-cache·playwright-cache)는 root 소유로 만들어지므로 러너 사용자가 쓸 수 있게 디렉터리만 넘긴다(캐시 내용은 재귀로 건드리지 않는다)
       - name: init-go-cache
-        image: &runnerImage ghcr.io/jangjaelee/arc-runner:2.338.0-4031b25@sha256:30f44df23975b05a78c2389e1148b5a04fbe5c5f2442b1100ec277ba4adca516
+        image: &runnerImage ghcr.io/jangjaelee/arc-runner:2.338.0-e80c90f@sha256:20d7f4c4464c841ee5e27d85b0ad9078c65f3f0315ba92aefbeff19a5f4eeb50
         command: ["sh", "-c", "mkdir -p /ci-cache/go/mod /ci-cache/go/build /ci-cache/ms-playwright && chown \"$(id -u runner):$(id -g runner)\" /ci-cache/go /ci-cache/go/mod /ci-cache/go/build /ci-cache/ms-playwright"]
         securityContext:
           runAsUser: 0
