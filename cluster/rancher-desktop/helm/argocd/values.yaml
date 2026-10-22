@@ -1,0 +1,32 @@
+# chart: argo/argo-cd 10.10.5 (Argo CD v3.5.5), release argocd, ns argo-cd (Argo CD 미관리, Helm CLI로 설치)
+# 접속: https://argocd.awx.kr → Istio Gateway(ServiceLB → 127.0.0.1, listener https-argocd)에서 TLS 종료 → argocd-server:80
+#       경로는 manifests/argocd/httproute.yaml. CLI는 `argocd login argocd.awx.kr --grpc-web`
+# 차트 10.x부터 global.networkPolicy.create 기본값 true → 컴포넌트별 NetworkPolicy(Ingress만) 생성.
+# argocd-server는 모든 출처 허용이라 Istio Gateway(istio-system) → argocd-server:80 경로는 막히지 않는다.
+# redis·repo-server·dex는 Argo CD 내부 컴포넌트에서만 접근 가능. metrics 포트는 모든 네임스페이스 허용.
+configs:
+  params:
+    server.insecure: true               # TLS는 Gateway가 종료하므로 argocd-server는 평문 HTTP로 응답
+  cm:
+    url: https://argocd.awx.kr          # SSO 리다이렉트 기준 주소 (https://argocd.awx.kr/auth/callback)
+    accounts.linux: apiKey,login
+    accounts.linux.enabled: "true"
+    # Google 로그인 (OIDC 직접 연동, Dex 미사용)
+    # OAuth 클라이언트: GCP 프로젝트 alex-space-0001, 동의 화면 Testing(테스트 사용자만 로그인 가능)
+    # clientSecret은 레포에 두지 않는다 → secret argo-cd/argocd-oidc-google(라벨 app.kubernetes.io/part-of=argocd)의 clientSecret 키
+    oidc.config: |
+      name: Google
+      issuer: https://accounts.google.com
+      clientID: 932993981073-vm4idt1sun0mvuavk51kr0mib915ba49.apps.googleusercontent.com
+      clientSecret: $argocd-oidc-google:clientSecret
+      requestedScopes: ["openid", "profile", "email"]
+  rbac:
+    policy.default: ""                  # 매핑되지 않은 사용자는 권한 없음 (이전: role:admin)
+    scopes: "[email]"                   # RBAC 매핑에 OIDC email 클레임 사용
+    policy.csv: |
+      g, linux, role:admin
+      g, cine0831@gmail.com, role:admin
+
+server:
+  service:
+    type: ClusterIP                     # 외부 노출은 Gateway로만

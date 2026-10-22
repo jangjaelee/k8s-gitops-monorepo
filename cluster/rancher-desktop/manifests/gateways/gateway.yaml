@@ -1,0 +1,73 @@
+# k3s ServiceLB(svclb DaemonSet, 노드 :80/:443) → Rancher Desktop 포트 포워딩(Mac 127.0.0.1) → Service(LoadBalancer) → Istio Gateway Pod
+# Mac /etc/hosts에 호스트 이름을 127.0.0.1로 등록한다. Traefik은 꺼 둔다(:80/:443 충돌).
+# HTTP :80, HTTPS :443(home.awx.kr, www.home.awx.kr — 사설 CA 인증서 certificate.yaml)
+# 호스트 전용 listener: argocd.awx.kr(https-argocd), infralens.awx.kr(https-infralens)
+# 호스트 전용 listener는 각자 전용 인증서를 쓴다. 여러 호스트를 덮는 인증서를 같이 쓰면 브라우저가 HTTP/2 연결을
+# 다른 호스트에 재사용하고, Istio는 처음 연결한 SNI의 라우트만 봐서 404를 낸다(certificate.yaml 주석, PR #47).
+# Istio가 이 Gateway를 보고 istio-system에 Deployment·Service(istio-gateway-istio)를 자동 생성한다.
+# 네임스페이스 istio-system은 istio-base/istiod 앱이 만든다(CreateNamespace).
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: istio-gateway
+  namespace: istio-system
+  labels:
+    istio.io/rev: 1-30-3          # 이 Gateway를 관리할 Istio control plane 리비전
+spec:
+  gatewayClassName: istio
+  listeners:
+    - name: http
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""                     # API 서버 기본값과 맞춤(없으면 Argo CD가 OutOfSync로 봄)
+            kind: Secret
+            name: istio-gateway-tls       # certificate.yaml (cert-manager)
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https-argocd            # argocd.awx.kr 전용 (SNI로 구분, 전용 인증서)
+      hostname: argocd.awx.kr
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: argocd-gateway-tls      # certificate-argocd.yaml
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              kubernetes.io/metadata.name: argo-cd
+    - name: https-infralens         # infralens.awx.kr 전용 (SNI로 구분, 전용 인증서). HTTPRoute는 InfraLens 쪽이 관리
+      hostname: infralens.awx.kr
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: infralens-gateway-tls   # certificate-infralens.yaml
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchExpressions:
+              # infralens-test: 백엔드 시험 설치(Dex /dex 라우트), infralens: PoC 설치(화면 /, /api, /auth)
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values:
+                  - infralens-test
+                  - infralens

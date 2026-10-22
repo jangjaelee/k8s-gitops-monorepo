@@ -1,0 +1,5 @@
+# chart: jetstack/cert-manager v1.20.2  (Argo CD app: argocd/applications/cert-manager.yaml)
+# 사설 CA ClusterIssuer는 manifests/cert-manager-issuers/ (앱 cert-manager-issuers)
+crds:
+  enabled: true      # CRD를 차트로 설치(이전 installCRDs: true, deprecated)
+  keep: true         # 차트·앱을 지워도 CRD(와 Certificate 등 리소스)는 남긴다(차트 기본값)

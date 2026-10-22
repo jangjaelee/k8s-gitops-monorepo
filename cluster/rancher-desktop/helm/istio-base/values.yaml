@@ -1,0 +1,4 @@
+# chart: istio/base 1.30.3  (Argo CD app: argocd/applications/istio-base.yaml)
+# Istio CRD와 기본 리비전 검증 webhook. Gateway API CRD는 gateway-api-crds 앱이 관리한다.
+# 검증 webhook(istiod-default-validator)이 가리킬 istiod 리비전 → Service istiod-1-30-3
+defaultRevision: "1-30-3"

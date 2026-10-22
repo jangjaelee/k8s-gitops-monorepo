@@ -1,0 +1,14 @@
+# Pod에서 *.awx.kr을 이 클러스터 Gateway로 풀리게 한다(Argo CD app: argocd/applications/gateways.yaml).
+# Mac /etc/hosts(127.0.0.1)는 Pod에 보이지 않아, 그대로 두면 공인 DNS를 거쳐 home-k8s로 간다.
+# 예: InfraLens 앱이 OIDC issuer https://infralens.awx.kr/dex를 부를 때.
+# k3s CoreDNS가 ConfigMap kube-system/coredns-custom의 *.override를 기본 서버 블록에 import한다(k3s 기본 Corefile).
+# 새 HTTPS 전용 호스트를 추가하면 여기에도 넣는다.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns-custom
+  namespace: kube-system
+data:
+  awx.override: |
+    rewrite name exact argocd.awx.kr istio-gateway-istio.istio-system.svc.cluster.local
+    rewrite name exact infralens.awx.kr istio-gateway-istio.istio-system.svc.cluster.local

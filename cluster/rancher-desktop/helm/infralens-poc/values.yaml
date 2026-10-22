@@ -1,0 +1,76 @@
+# chart: jangjaelee/infralens(비공개) deploy/helm/infralens 0.1.0 @ 9748236  (Argo CD app: argocd/applications/infralens-poc.yaml)
+# InfraLens PoC 설치. 릴리스된 제품을 GitOps로 설치하는 상황을 가정한다. 값은 Helm 릴리스 rev 9와 같다(image.tag 제외).
+# 비밀값은 없다. existingSecret은 Secret 이름만 가리키고, Secret은 InfraLens 쪽이 infralens ns에 만든다.
+# image.tag는 여기 두지 않는다: 릴리스 차트는 appVersion을 쓰고, 커밋으로 올릴 때는 Application의 helm.parameters에 둔다.
+app:
+  enabled: true
+  publicUrl: https://infralens.awx.kr
+  sso:
+    adminSubjects:
+    - CiQwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDESBWxvY2Fs
+    allowAllUsers: true
+    ca:
+      existingSecret: infralens-gw-ca
+      key: ca.crt
+    clientId: infralens
+    clientSecret:
+      existingSecret: infralens-sso
+    issuer: https://infralens.awx.kr/dex
+  trustedProxyCIDRs:
+  - 10.42.0.0/16                 # k3s 기본 Pod CIDR(Flannel)
+database:
+  app:
+    existingSecret: infralens-db-app
+  loader:
+    existingSecret: infralens-db-loader
+  migrator:
+    existingSecret: infralens-db-migrator
+  llm:
+    existingSecret: infralens-db-llm           # AI 채팅 전용 DB 계정(키 url)
+encryption:
+  existingSecret: infralens-encryption
+rbac:
+  inClusterCollector:
+    enabled: true
+routing:
+  gateway:
+    enabled: true
+    parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: istio-gateway
+      namespace: istio-system
+      sectionName: https-infralens
+web:
+  enabled: true
+# 게이트웨이 시작 때 Map 기본 종류 14개 + node·event·namespace를 켜 두고 끄지 않는다. 나머지는 1시간 안 보면 끈다.
+# 캐시가 idle로 꺼진 뒤 첫 응답이 빈 캐시라 개요(/kube/in-cluster)에서 워크로드가 0으로 보이던 문제를 PoC에서 피한다.
+kube:
+  # 접근 현황(누가 어떤 권한을 가졌는지). 켜도 렌더링은 app·kube-gateway env INFRALENS_KUBE_ACCESS_ENABLED만 바뀜(새 RBAC 없음). 보는 최소 역할은 차트 기본 admin. 2026-10-21 켬
+  access:
+    enabled: true
+  cache:
+    idleStopAfter: 1h
+    warm: [pod, deployment, replicaset, statefulset, daemonset, job, cronjob, horizontalpodautoscaler, service, endpointslice, ingress, ingressclass, networkpolicy, persistentvolumeclaim, node, event, namespace]
+# AI 채팅. API 키는 Secret 이름만 가리킨다(키 api-key, InfraLens 쪽이 infralens ns에 만든다).
+# 켜면 API 서버에 LLM env가 붙고 종료 유예가 길어지며(응답 스트림 마무리), 주간 평가 CronJob infralens-llm-eval이 생긴다.
+llm:
+  enabled: true
+  primary: anthropic
+  secondary: openai
+  anthropic:
+    model: claude-sonnet-5-5
+    apiKey:
+      existingSecret: infralens-llm-anthropic
+  openai:
+    model: gpt-6-luna
+    reasoningEffort: none          # Chat Completions에서 tool을 쓰려면 필요(차트 #355)
+    apiKey:
+      existingSecret: infralens-llm-openai
+  # 비용 절감(2026-10-20, 개인 선불 크레딧이 시간당 약 0.7달러 줄어서): 월 토큰·사용자별 요청 한도를 낮추고 주간 평가를 끈다.
+  limits:
+    monthlyTokenBudget: 1000000
+    userHourly: 10                # 차트 기본 30
+    userDaily: 30                 # 차트 기본 200
+  eval:
+    enabled: false                # 주간 평가 CronJob을 두지 않는다. 필요할 때 사용자 승인 뒤 수동으로 돌린다
