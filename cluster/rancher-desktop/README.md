@@ -72,7 +72,8 @@ Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 직접 �
 | argo-rollouts | system | argo-rollouts | argo/argo-rollouts 2.43.8 | v1.10.1 | `helm/argo-rollouts/values.yaml` | Gateway API 플러그인 v0.17.0(linux-arm64) |
 | kyverno | system | kyverno | kyverno/kyverno 3.9.1 | v1.19.1 | `helm/kyverno/values.yaml` | 엔진, `ServerSideDiff=true` |
 | kyverno-policies | system | kyverno | kyverno/kyverno-policies 3.9.1 + 이 레포 path | v1.19.1 | `helm/kyverno-policies/values.yaml`, `manifests/kyverno-policies/` | PSS restricted 17개 + 모범 사례 2개, **모두 Audit**, `ServerSideDiff=true` |
-| infralens-poc | default | infralens | github.com/jangjaelee/infralens(비공개) `deploy/helm/infralens` @ 9748236 | sha-9748236 | `helm/infralens-poc/values.yaml` | InfraLens PoC, 배포 키 필요(아래 "InfraLens PoC" 절) |
+| infralens-dex | default | infralens-test | 이 레포 path @ main | Dex v2.45.1 | `manifests/infralens-dex/` | InfraLens 로그인 IdP, issuer `https://infralens.awx.kr/dex`, memory storage |
+| infralens-poc | default | infralens | github.com/jangjaelee/infralens(비공개) `deploy/helm/infralens` @ 9748236 | sha-9748236 | `helm/infralens-poc/values.yaml` | InfraLens PoC, 배포 키 필요, AI 채팅은 사용자 키(BYOK)만(아래 "InfraLens PoC" 절) |
 | kube-state-metrics | system | kube-system | prometheus-community/kube-state-metrics 7.4.0 | v2.19.0 | 기본값 | |
 | kube-prometheus-stack | o11y | prometheus-operator | prometheus-community/kube-prometheus-stack 84.1.0 | operator v0.90.1 | `helm/prometheus-operator/values.yaml` | operator만(Prometheus·Grafana·Alertmanager 끔) |
 
@@ -160,6 +161,7 @@ Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 직접 �
    kubectl apply -f $A/argocd-config.yaml
    kubectl apply -f $A/argo-rollouts.yaml
    kubectl apply -f $A/kyverno.yaml -f $A/kyverno-policies.yaml   # 정책은 엔진(CRD) 다음
+   kubectl apply -f $A/infralens-dex.yaml      # Secret dex-secrets를 만든 뒤(아래 "InfraLens PoC" 절)
    kubectl apply -f $A/infralens-poc.yaml      # 배포 키 Secret과 InfraLens 쪽 Secret·DB가 있은 뒤(아래 "InfraLens PoC" 절)
    kubectl apply -f $A/kube-state-metrics.yaml -f $A/kube-prometheus-stack.yaml
    ```
@@ -278,7 +280,8 @@ sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keyc
 |---|---|---|
 | `argo-cd/argocd-oidc-google` | `clientSecret` | Argo CD Google 로그인 |
 | `argo-cd/repo-infralens` | `sshPrivateKey` 등 | InfraLens 차트 저장소(아래) |
-| `infralens/infralens-*` | 차트 values 참고 | InfraLens PoC(아래) |
+| `infralens/infralens-*` | 아래 "InfraLens PoC" 표 | InfraLens PoC |
+| `infralens-test/dex-secrets` | `INFRALENS_CLIENT_SECRET`, `ADMIN_PASSWORD_HASH` | Dex(아래) |
 
 Rancher Desktop에서 "Reset Kubernetes"를 하면 Secret도 지워지므로 다시 만듭니다.
 
@@ -297,8 +300,27 @@ Rancher Desktop에서 "Reset Kubernetes"를 하면 Secret도 지워지므로 다
   - 업그레이드할 때는 새 태그를 먼저 받은 뒤 `targetRevision`·`image.tag`를 올립니다.
   - 이미지가 지워지면(Reset Kubernetes, 디스크 85% 이상에서 kubelet 이미지 GC, `docker image prune -a`) 다음 Pod 생성 때 `ImagePullBackOff`가 납니다. 위 명령을 다시 실행합니다.
   - InfraLens가 arm64 이미지를 내면 이 절차는 필요 없습니다.
-- 차트 밖 리소스는 InfraLens 쪽이 이 클러스터에 먼저 만들어야 합니다: `infralens` 네임스페이스, `infralens-pg` StatefulSet·Service, Secret(`infralens-db-app`·`-loader`·`-migrator`·`-llm`, `infralens-encryption`, `infralens-sso`, `infralens-gw-ca`, `infralens-llm-anthropic`·`-openai`), Dex(`infralens-test` 네임스페이스, `/dex`).
-- `infralens-gw-ca`(키 `ca.crt`)는 **이 클러스터의** 사설 CA로 만듭니다(home-k8s CA가 아님). 앱이 `https://infralens.awx.kr/dex`를 CoreDNS rewrite로 이 클러스터 Gateway에서 받으므로 이 CA로 검증합니다.
+- 설치 전에 만들 것(차트 밖, 레포에 넣지 않음). 순서대로 만듭니다.
+
+  | 준비물 | 키 | 만드는 법 |
+  |---|---|---|
+  | PostgreSQL `infralens-pg`, Secret `infralens-db-app`·`-loader`·`-migrator` | `url` | InfraLens 레포 `planning/private/poc/setup-db.sh`(context를 `rancher-desktop`으로 바꿔 실행) |
+  | Secret `infralens-db-llm` | `url` | role `infralens_llm_ro`에 비밀번호를 주고 같은 형식의 URL로(AI 채팅) |
+  | Secret `infralens-encryption` | `active`, `k1` | `--from-literal=active=k1 --from-literal=k1="$(openssl rand -base64 32)"`. BYOK 사용자 키 암호화에도 씀 |
+  | Secret `infralens-sso` | `client-secret` | Dex `INFRALENS_CLIENT_SECRET`과 같은 값 |
+  | Secret `infralens-gw-ca` | `ca.crt` | 이 클러스터 사설 CA(`cert-manager/homelab-root-ca`의 `ca.crt`). home-k8s CA가 아님 |
+  | Secret `infralens-test/dex-secrets` | `INFRALENS_CLIENT_SECRET`, `ADMIN_PASSWORD_HASH` | 아래 "Dex" |
+
+- **AI 채팅은 사용자 키(BYOK)만 씁니다**(`llm.byok`, `orgKeyFallback: false`). 조직 키 Secret(`infralens-llm-anthropic`·`-openai`)은 두지 않습니다. 로그인한 사용자가 화면에서 자기 Anthropic·OpenAI 키를 넣고, 키는 `infralens-encryption`으로 암호화해 최대 30일 보관합니다. 키가 없는 사용자는 채팅을 쓰지 못합니다.
+- **Dex**(앱 `infralens-dex`, ns `infralens-test`): `https://infralens.awx.kr/dex`. 정적 사용자 `admin`(이메일 `admin@infralens.local`, userID `00000000-0000-0000-0000-000000000001` = values `adminSubjects`의 관리자). memory storage라 Dex가 재시작하면 다시 로그인합니다. 설정(`manifests/infralens-dex/config.yaml`)을 바꾸면 `dex.yaml`의 `checksum/config` 값도 바꿔 재시작시킵니다.
+  ```bash
+  CS=$(openssl rand -hex 24)                                   # 클라이언트 secret (Dex와 infralens-sso에 같은 값)
+  HASH=$(htpasswd -nbBC 10 "" '<관리자 비밀번호>' | tr -d ':\n')   # bcrypt
+  kubectl create namespace infralens-test --dry-run=client -o yaml | kubectl apply -f -
+  kubectl -n infralens-test create secret generic dex-secrets --from-literal=INFRALENS_CLIENT_SECRET="$CS" --from-literal=ADMIN_PASSWORD_HASH="$HASH"
+  kubectl -n infralens create secret generic infralens-sso --from-literal=client-secret="$CS"
+  unset CS HASH
+  ```
 - `app.trustedProxyCIDRs`는 k3s Pod CIDR `10.42.0.0/16`입니다.
 - 마이그레이션 Job(`infralens-migrate`, Helm 훅)은 Argo CD에서 PreSync 훅으로 sync할 때마다 돕니다.
 - 저장소 인증: GitHub 배포 키(읽기 전용, 제목 `argocd-rancher-desktop`). home-k8s와 다른 키를 씁니다. 개인 키는 Secret `argo-cd/repo-infralens`에만 두고 레포에는 넣지 않습니다.

@@ -1,0 +1,28 @@
+# https://infralens.awx.kr/dex → Istio Gateway(listener https-infralens) → Service dex:5556
+# 나머지 경로(/, /api, /auth)는 infralens 네임스페이스의 InfraLens HTTPRoute가 받는다.
+# group/kind/weight/matches는 API 서버 기본값을 그대로 적어 둔다(없으면 Argo CD가 OutOfSync로 봄).
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: dex
+  namespace: infralens-test
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: istio-gateway
+      namespace: istio-system
+      sectionName: https-infralens
+  hostnames:
+    - infralens.awx.kr
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /dex
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: dex
+          port: 5556
+          weight: 1

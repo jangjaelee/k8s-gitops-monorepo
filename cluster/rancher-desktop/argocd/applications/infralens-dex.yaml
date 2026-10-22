@@ -1,0 +1,23 @@
+# InfraLens 로그인용 개발 IdP(Dex). InfraLens 차트에는 넣지 않고 따로 둔다(InfraLens LLD_deployment "개발 IdP").
+# 비밀값(클라이언트 secret, 관리자 비밀번호 bcrypt 해시)은 Secret infralens-test/dex-secrets(레포 밖, README "InfraLens PoC")
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: infralens-dex
+  namespace: argo-cd
+spec:
+  project: default                    # InfraLens 제품 쪽 구성요소(infralens-poc와 같은 project)
+  source:
+    repoURL: https://github.com/jangjaelee/k8s-gitops-monorepo.git
+    targetRevision: main
+    path: cluster/rancher-desktop/manifests/infralens-dex
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: infralens-test
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
