@@ -52,6 +52,9 @@ kube:
   # 접근 현황(누가 어떤 권한을 가졌는지). 켜도 렌더링은 app·kube-gateway env INFRALENS_KUBE_ACCESS_ENABLED만 바뀜(새 RBAC 없음). 보는 최소 역할은 차트 기본 admin. 2026-10-21 켬
   access:
     enabled: true
+  # SNAT 판정. rancher-desktop은 Flannel이라 Calico IPPool이 없음 → 수집기 ClusterRole에 ippools 규칙을 넣지 않는다. 2026-10-23 사용자 결정
+  snat:
+    calico: false
   cache:
     idleStopAfter: 1h
     warm: [pod, deployment, replicaset, statefulset, daemonset, job, cronjob, horizontalpodautoscaler, service, endpointslice, ingress, ingressclass, networkpolicy, persistentvolumeclaim, node, event, namespace]
