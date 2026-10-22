@@ -73,7 +73,7 @@ Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 직접 �
 | kyverno | system | kyverno | kyverno/kyverno 3.9.1 | v1.19.1 | `helm/kyverno/values.yaml` | 엔진, `ServerSideDiff=true` |
 | kyverno-policies | system | kyverno | kyverno/kyverno-policies 3.9.1 + 이 레포 path | v1.19.1 | `helm/kyverno-policies/values.yaml`, `manifests/kyverno-policies/` | PSS restricted 17개 + 모범 사례 2개, **모두 Audit**, `ServerSideDiff=true` |
 | infralens-dex | default | infralens-test | 이 레포 path @ main | Dex v2.45.1 | `manifests/infralens-dex/` | InfraLens 로그인 IdP, issuer `https://infralens.awx.kr/dex`, memory storage |
-| infralens-poc | default | infralens | github.com/jangjaelee/infralens(비공개) `deploy/helm/infralens` @ 9748236 | sha-9748236 | `helm/infralens-poc/values.yaml` | InfraLens PoC, 배포 키 필요, AI 채팅은 사용자 키(BYOK)만(아래 "InfraLens PoC" 절) |
+| infralens-poc | default | infralens | github.com/jangjaelee/infralens(비공개) `deploy/helm/infralens` @ cdbdf87 | sha-cdbdf87 | `helm/infralens-poc/values.yaml` | InfraLens PoC, 배포 키 필요, AI 채팅은 사용자 키(BYOK)만(아래 "InfraLens PoC" 절) |
 | kube-state-metrics | system | kube-system | prometheus-community/kube-state-metrics 7.4.0 | v2.19.0 | 기본값 | |
 | kube-prometheus-stack | o11y | prometheus-operator | prometheus-community/kube-prometheus-stack 84.1.0 | operator v0.90.1 | `helm/prometheus-operator/values.yaml` | operator만(Prometheus·Grafana·Alertmanager 끔) |
 
@@ -298,15 +298,7 @@ Rancher Desktop에서 "Reset Kubernetes"를 하면 Secret도 지워지므로 다
 
 - 차트는 `jangjaelee/infralens`(비공개)의 `deploy/helm/infralens`를 릴리스 태그(예: `v0.1.0`)로 고정합니다. 커밋으로 올릴 때는 `targetRevision`을 커밋으로, `image.tag`를 Application의 `helm.parameters`에 둡니다.
 - 업그레이드: Application 파일의 `targetRevision`(커밋일 때는 `image.tag`도)을 한 PR에서 바꾸고, 머지 뒤 `kubectl apply -f cluster/rancher-desktop/argocd/applications/infralens-poc.yaml`.
-- **이미지는 amd64 전용이라 QEMU 에뮬레이션으로 돌립니다.** InfraLens는 `linux/amd64`만 빌드합니다(InfraLens 레포 `publish.yml`, 기획 로그 D37). 아래처럼 동작합니다.
-  - Rancher Desktop VM에 QEMU binfmt(`qemu-x86_64`)가 등록돼 있어 amd64 바이너리가 그대로 실행됩니다. CPU는 네이티브보다 몇 배 느립니다.
-  - kubelet은 플랫폼 없이 받으므로 `no matching manifest for linux/arm64/v8`로 실패합니다. 그래서 **이미지를 미리 받아 둡니다**. k3s(`--docker`)와 Mac의 `docker`가 같은 dockerd를 쓰고, `sha-*` 태그는 `IfNotPresent`라 kubelet이 받은 이미지를 그대로 씁니다.
-    ```bash
-    for n in app collector web; do docker pull --platform linux/amd64 docker.io/cine0831/infralens-${n}:sha-9748236; done
-    ```
-  - 업그레이드할 때는 새 태그를 먼저 받은 뒤 `targetRevision`·`image.tag`를 올립니다.
-  - 이미지가 지워지면(Reset Kubernetes, 디스크 85% 이상에서 kubelet 이미지 GC, `docker image prune -a`) 다음 Pod 생성 때 `ImagePullBackOff`가 납니다. 위 명령을 다시 실행합니다.
-  - InfraLens가 arm64 이미지를 내면 이 절차는 필요 없습니다.
+- 이미지는 `linux/amd64`·`linux/arm64` 멀티 아키텍처라 노드(arm64)에서 네이티브로 돕니다(`sha-cdbdf87`부터, InfraLens `publish-arm64` 워크플로). amd64 전용 태그로 되돌리면 QEMU 에뮬레이션에서 Steampipe가 plugin manager를 찾지 못해(`/proc/<pid>/exe`가 `qemu-x86_64`) 클라우드 수집이 모두 실패합니다. 태그를 올리기 전에 `docker buildx imagetools inspect docker.io/cine0831/infralens-collector:<태그>`로 arm64가 있는지 확인합니다.
 - 설치 전에 만들 것(차트 밖, 레포에 넣지 않음). 순서대로 만듭니다.
 
   | 준비물 | 키 | 만드는 법 |
@@ -345,7 +337,7 @@ rm -rf $d
 
 - **단일 노드**: istiod·Gateway·Argo CD 등 모두 레플리카 1이라 Pod 재시작이나 VM 재시작 동안 서비스가 끊깁니다. PDB를 두지 않습니다.
 - **자원**: 6 CPU·16Gi를 모든 구성요소가 나눠 씁니다. 부족하면 Rancher Desktop 설정(Virtual Machine → Memory/CPUs)에서 늘립니다.
-- **arm64**: 새 구성요소·자체 이미지·플러그인 바이너리(argo-rollouts처럼 아키텍처별 파일을 받는 것)는 arm64용인지 확인합니다. amd64 전용 이미지는 InfraLens처럼 미리 받아 에뮬레이션으로 돌립니다(느림).
+- **arm64**: 새 구성요소·자체 이미지·플러그인 바이너리(argo-rollouts처럼 아키텍처별 파일을 받는 것)는 arm64용인지 확인합니다. amd64 전용 이미지는 QEMU 에뮬레이션으로 돌지만 느리고, Steampipe처럼 자기 프로세스를 `/proc/<pid>/exe`로 확인하는 프로그램은 동작하지 않습니다.
 - **호스트 이름 공유**: home-k8s와 같은 `*.awx.kr`을 쓰므로 Mac에서는 `/etc/hosts`로 어느 클러스터에 붙을지 정합니다. 이 Mac에서 home-k8s에 접속하려면 항목을 다시 주석 처리합니다.
 - **Rancher Desktop Reset**: "Reset Kubernetes"는 클러스터를 새로 만듭니다. "처음부터 올릴 때"를 다시 하고 Secret·사설 CA 신뢰 등록도 다시 합니다.
 - 사설 CA 인증서이므로 CA를 신뢰 등록하지 않은 기기에서는 인증서 경고가 납니다.
