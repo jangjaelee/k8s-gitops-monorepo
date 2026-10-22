@@ -1,0 +1,44 @@
+# chart: kiali/kiali-operator 2.33.0 (Kiali v2.33.0)  (Argo CD app: argocd/applications/kiali-operator.yaml)
+# Istio 1.30은 Kiali 2.26 이상에서 테스트됨(kiali.io 설치 문서 호환 표). 운영자(operator)는 kiali-operator ns, Kiali 서버는 istio-system에 뜬다.
+# 접속: https://kiali.awx.kr → Gateway(192.168.50.200, listener https-kiali) → Service istio-system/kiali:20001 (manifests/gateways/httproute-kiali.yaml)
+resources:
+  requests:
+    cpu: 10m
+    memory: 64Mi
+  limits:
+    memory: 512Mi
+
+# Kiali CR을 차트가 만든다(Argo CD가 관리). spec 필드: https://kiali.io/docs/configuration/kialis.kiali.io/
+cr:
+  create: true
+  name: kiali
+  namespace: istio-system
+  spec:
+    istio_namespace: istio-system
+    auth:
+      # Kubernetes ServiceAccount 토큰으로 로그인. 같은 Gateway라 외부에서도 접속될 수 있어 anonymous는 쓰지 않는다
+      strategy: token
+    deployment:
+      cluster_wide_access: true
+      view_only_mode: false          # 사용자 결정(2026-10-22): 화면에서 Istio 설정 변경 허용. GitOps 관리 리소스는 Argo CD selfHeal이 되돌릴 수 있음
+      ingress:
+        enabled: false               # 진입은 Gateway API HTTPRoute로
+      resources:
+        requests:
+          cpu: 10m
+          memory: 64Mi
+        limits:
+          memory: 1Gi
+    server:
+      web_fqdn: kiali.awx.kr
+      web_port: "443"
+      web_schema: https
+      web_root: /
+    external_services:
+      prometheus:
+        # kube-prometheus-stack(helm/prometheus-operator/values.yaml)의 Prometheus
+        url: http://kube-prometheus-stack-prometheus.prometheus-operator:9090
+      grafana:
+        enabled: false
+      tracing:
+        enabled: false

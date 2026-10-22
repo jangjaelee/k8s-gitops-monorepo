@@ -1,0 +1,28 @@
+# https://kiali.awx.kr → Istio Gateway(192.168.50.200, listener https-kiali) → Service istio-system/kiali:20001
+# Kiali 서버와 Service는 kiali-operator가 Kiali CR(helm/kiali-operator/values.yaml)을 보고 istio-system에 만든다. 같은 ns라 ReferenceGrant가 필요 없다.
+# group/kind/weight/matches는 API 서버 기본값을 그대로 적어 둔다(없으면 Argo CD가 OutOfSync로 봄).
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: kiali
+  namespace: istio-system
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: istio-gateway
+      namespace: istio-system
+      sectionName: https-kiali
+  hostnames:
+    - kiali.awx.kr
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: kiali
+          port: 20001
+          weight: 1

@@ -74,6 +74,7 @@ CNI나 Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 �
 | kube-state-metrics | system | kube-system | prometheus-community/kube-state-metrics 7.4.0 | v2.19.0 | 기본값 | |
 | metric-server | o11y | kube-system | metrics-server/metrics-server 3.13.0 | v0.8.0 | `helm/metrics-server/values.yaml` | release 이름 `metric-server` |
 | kube-prometheus-stack | o11y | prometheus-operator | prometheus-community/kube-prometheus-stack 84.1.0 | operator v0.90.1, Prometheus v3.11.3 | `helm/prometheus-operator/values.yaml` | Prometheus 1개(보존 7일, local-path 10Gi). Istio 수집: PodMonitor `envoy-stats`, ServiceMonitor `istiod`. Grafana·Alertmanager·node-exporter 끔 |
+| kiali-operator | o11y | kiali-operator | kiali/kiali-operator 2.33.0 (https://kiali.org/helm-charts) | Kiali v2.33.0 | `helm/kiali-operator/values.yaml` | 차트가 Kiali CR(`istio-system/kiali`)을 만들고 operator가 Kiali 서버를 istio-system에 띄움. `https://kiali.awx.kr`, 로그인 token(ServiceAccount 토큰), 쓰기 허용, Prometheus는 kube-prometheus-stack |
 
 ### Argo CD 저장소 등록
 
@@ -100,8 +101,9 @@ Client ──► 192.168.50.200 (Cilium LB IPAM, L2 ARP)
 | `vault.awx.kr` | `https-vault` | `vault-gateway-tls` | `vault/vault` | `vault:8200` |
 | `argocd.awx.kr` | `https-argocd` | `argocd-gateway-tls` | `argo-cd/argocd-server` | `argocd-server:80`(`server.insecure`) |
 | `infralens.awx.kr` | `https-infralens` | `infralens-gateway-tls` | `infralens-test`·`infralens`의 HTTPRoute(InfraLens 쪽 관리) | InfraLens 앱·웹·Dex |
+| `kiali.awx.kr` | `https-kiali` | `kiali-gateway-tls` | `istio-system/kiali`(`manifests/gateways/httproute-kiali.yaml`) | Kiali |
 
-- `vault.awx.kr`, `argocd.awx.kr`, `infralens.awx.kr`는 :80 요청을 https로 301 리다이렉트합니다(`manifests/gateways/http-redirect.yaml`).
+- `vault.awx.kr`, `argocd.awx.kr`, `infralens.awx.kr`, `kiali.awx.kr`는 :80 요청을 https로 301 리다이렉트합니다(`manifests/gateways/http-redirect.yaml`).
 - 호스트 전용 listener는 그 앱의 네임스페이스 하나에서만 HTTPRoute를 받습니다(`allowedRoutes` Selector). `https-infralens`만 예외로 `infralens-test`(시험 설치, Dex)와 `infralens`(PoC 설치) 두 곳에서 받습니다. 두 곳의 라우트가 같은 경로를 잡으면 Gateway API 규칙에 따라 먼저 만든 라우트가 이깁니다.
 - DNS A 레코드(hosting.co.kr)는 클러스터 안 Pod에서도 같은 주소로 풀립니다(CoreDNS → 노드 resolv.conf). Pod에서 LB IP로 나가는 연결은 Cilium이 Gateway Pod로 바로 보내므로, 앱 쪽 egress NetworkPolicy는 `ipBlock` 대신 istio-system의 Gateway Pod(`gateway.networking.k8s.io/gateway-name: istio-gateway`) :443을 허용해야 합니다.
 - LB IP `192.168.50.201–220`은 비어 있습니다(풀 `home-pool`).
@@ -148,7 +150,7 @@ Client ──► 192.168.50.200 (Cilium LB IPAM, L2 ARP)
    kubectl apply -f $A/arc-infralens.yaml      # arc-controller Healthy 후, GitHub App 값을 Vault에 넣은 뒤(아래 "ARC" 절)
    kubectl apply -f $A/ci-cache.yaml           # worker-node-04에 taint·라벨을 붙인 뒤(아래 "CI 전용 노드")
    kubectl apply -f $A/infralens-poc.yaml      # 배포 키 Secret과 InfraLens 쪽 Secret·DB가 있은 뒤(아래 "InfraLens PoC" 절)
-   kubectl apply -f $A/kube-state-metrics.yaml -f $A/metric-server.yaml -f $A/kube-prometheus-stack.yaml
+   kubectl apply -f $A/kube-state-metrics.yaml -f $A/metric-server.yaml -f $A/kube-prometheus-stack.yaml -f $A/kiali-operator.yaml
    ```
 4. 노드 설정: `$C/node-config/wifi-promisc/install.sh <SSH 호스트...>`
 
