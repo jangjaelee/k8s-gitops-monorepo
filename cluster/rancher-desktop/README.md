@@ -129,7 +129,8 @@ Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 직접 �
 레포 루트에서 실행합니다(`C=cluster/rancher-desktop`, context `rancher-desktop`).
 
 0. Rancher Desktop: Kubernetes 켬, Traefik 끔. Mac `/etc/hosts`에 위 "외부 노출"의 항목을 넣습니다.
-1. Argo CD: `helm install argocd argo/argo-cd -n argo-cd --create-namespace --version 10.10.5 -f $C/helm/argocd/values.yaml`
+1. TLS 검사 프록시가 있는 네트워크면 ConfigMap `custom-ca-certs`를 먼저 만듭니다(아래 "TLS 검사 프록시").
+   Argo CD: `helm install argocd argo/argo-cd -n argo-cd --create-namespace --version 10.10.5 -f $C/helm/argocd/values.yaml`
 2. Google 로그인 client secret(아래 "Argo CD" 절)과 AppProject `system`·`o11y`
    ```bash
    for p in system o11y; do
@@ -206,6 +207,33 @@ spec:
 Mac `/etc/hosts`에도 그 호스트를 `127.0.0.1`로 넣습니다.
 
 인증서 하나에 여러 호스트(`*.awx.kr` 등)를 넣어 listener들이 같이 쓰게 하지 않습니다. 브라우저가 HTTP/2 연결을 다른 호스트에도 재사용하는데, Istio Gateway는 처음 연결한 호스트(SNI) 기준으로 라우팅하므로 404가 납니다.
+
+## TLS 검사 프록시
+
+이 Mac이 붙는 네트워크의 TLS 검사 프록시가 일부 외부 사이트 인증서를 자체 CA로 바꿔 내보냅니다. Mac과 VM의 dockerd는 Rancher Desktop이 Mac 키체인 CA를 넣어 줘서 이미지 pull이 되지만, **Pod 안은 그 CA를 모릅니다**.
+
+| 영향 | 사이트(2026-10-22 확인) | 대응 |
+|---|---|---|
+| Argo CD repo-server Helm 차트 받기 | `charts.jetstack.io`, `argoproj.github.io`, `kyverno.github.io`, `prometheus-community.github.io` | `helm/argocd/values.yaml` `repoServer.volumes` |
+| argo-rollouts 플러그인 받기 | `release-assets.githubusercontent.com` | `helm/argo-rollouts/values.yaml` `controller.volumes` |
+| InfraLens AWS 수집 | `sts.amazonaws.com` | (미대응, InfraLens 설치 때) |
+
+영향 없음: github.com, Istio 차트(GCS), Google 로그인, docker.io·ghcr.io, LLM API.
+
+values는 ConfigMap `custom-ca-certs`(키 `custom-ca.crt`)를 `/etc/ssl/certs/custom-ca.crt`로 마운트합니다(`optional: true`, 없으면 기본 CA만). Go 프로그램은 `/etc/ssl/certs` 안 파일을 모두 읽어 신뢰합니다. **CA 인증서는 레포에 넣지 않고** 클러스터에만 만듭니다. 프록시 CA의 중간·루트 인증서를 Mac 시스템 키체인에서 꺼내 한 파일(PEM)로 합칩니다.
+
+```bash
+# <프록시 CA 이름>: 키체인 접근 → 시스템 키체인에서 확인. 체인 전체(중간 + 루트)를 넣는다
+security find-certificate -a -c "<프록시 CA 이름>" -p /Library/Keychains/System.keychain > custom-ca.crt
+echo | openssl s_client -connect charts.jetstack.io:443 -servername charts.jetstack.io -CAfile custom-ca.crt 2>/dev/null | grep 'Verify return code'   # 0 (ok)
+for ns in argo-cd argo-rollouts; do
+  kubectl create namespace $ns --dry-run=client -o yaml | kubectl apply -f -
+  kubectl -n $ns create configmap custom-ca-certs --from-file=custom-ca.crt --dry-run=client -o yaml | kubectl apply -f -
+done
+kubectl -n argo-cd rollout restart deploy/argocd-repo-server   # ConfigMap을 바꾼 뒤(subPath 마운트는 자동 갱신 안 됨)
+```
+
+프록시가 없는 네트워크에서는 ConfigMap이 있어도 해가 없습니다.
 
 ## 사설 CA 신뢰 등록 (브라우저 경고 없애기)
 
