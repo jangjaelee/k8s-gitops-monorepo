@@ -13,6 +13,18 @@ controller:
   # Gateway API 트래픽 라우터 플러그인 (argoproj-labs/rollouts-plugin-trafficrouter-gatewayapi v0.17.0)
   # controller가 시작할 때 내려받는다. 노드가 arm64라 linux-arm64 바이너리. sha256은 GitHub 릴리스 asset digest와 일치 확인.
   # Rollout에서 strategy.canary.trafficRouting.plugins."argoproj-labs/gatewayAPI".httpRoute 로 HTTPRoute 가중치를 조절한다.
+  # 플러그인을 GitHub Release(release-assets.githubusercontent.com)에서 받는데, 네트워크의 TLS 검사 프록시가 인증서를 바꾼다.
+  # 그 CA(ConfigMap custom-ca-certs, 레포 밖에서 만듦, README "TLS 검사 프록시")를 시스템 인증서 폴더에 더한다. 없으면 마운트 안 함.
+  volumes:
+    - name: custom-ca-certs
+      configMap:
+        name: custom-ca-certs
+        optional: true
+  volumeMounts:
+    - name: custom-ca-certs
+      mountPath: /etc/ssl/certs/custom-ca.crt
+      subPath: custom-ca.crt
+      readOnly: true
   trafficRouterPlugins:
     - name: argoproj-labs/gatewayAPI
       location: https://github.com/argoproj-labs/rollouts-plugin-trafficrouter-gatewayapi/releases/download/v0.17.0/gatewayapi-plugin-linux-arm64
