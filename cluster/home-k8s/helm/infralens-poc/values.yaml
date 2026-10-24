@@ -55,6 +55,13 @@ kube:
   # SNAT 판정(M9 4a). PoC(home-k8s)는 Cilium이라 Calico IPPool을 읽지 않음 → 수집기 ClusterRole에 ippools 규칙을 넣지 않는다. 2026-10-22 사용자 결정
   snat:
     calico: false
+  # Kubernetes 이력 적재(16-2 실측용). 켜면 kube-gateway가 infralens-db-loader 계정으로 10분마다 한 바퀴(동시 2) 적재하고,
+  # purge CronJob(매주 일 04:00)이 30일 지난 이력을 지움. 새 RBAC 없음. 2026-10-24 사용자 결정(PoC 이력 적재 켬, 보존 30일)
+  history:
+    enabled: true
+    intervalMinutes: 10
+    parallel: 2
+    retentionDays: 30
   cache:
     idleStopAfter: 1h
     warm: [pod, deployment, replicaset, statefulset, daemonset, job, cronjob, horizontalpodautoscaler, service, endpointslice, ingress, ingressclass, networkpolicy, persistentvolumeclaim, node, event, namespace]
