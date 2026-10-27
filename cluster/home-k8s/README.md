@@ -303,7 +303,7 @@ Actions Runner Controller(러너 스케일 셋 모드)로 GitHub Actions self-ho
 |---|---|
 | 컨트롤러 | 앱 `arc-controller`, ns `arc-systems`, `watchSingleNamespace: arc-runners`(ClusterRole 없음). 리스너 Pod도 여기 뜹니다 |
 | 스케일 셋 | 앱 `arc-infralens`, ns `arc-runners`, 이름 **`arc-infralens`**(= 워크플로 `runs-on` 값), 저장소 단위 등록 |
-| 러너 | ephemeral(잡 하나 후 삭제), min 0 / max 12, linux/amd64. Pod당 requests 3 CPU·4Gi, 메모리 limit 8Gi(runner 2 CPU·dind 1 CPU, 각각 2Gi / 4Gi) |
+| 러너 | ephemeral(잡 하나 후 삭제), min 0 / max 12, linux/amd64. Pod당 requests 3 CPU·2.5Gi, 메모리 limit 5Gi(runner 2 CPU·2Gi / 4Gi, dind 1 CPU·512Mi / 1Gi. dind는 2026-10-27 실사용 최대 491Mi 기준으로 줄임) |
 | 배치 | CI 전용 worker-node-04를 먼저 채우고(preferred nodeAffinity + taint toleration) 넘치면 일반 워커. node-04에는 CPU 기준 러너 5개(메모리도 20Gi로 들어감) |
 | Go 캐시 | 노드 hostPath `/var/lib/ci-cache/go` → 러너 `/ci-cache/go`(`GOMODCACHE`·`GOCACHE`), `INFRALENS_CI_LOCAL_GO_CACHE=1`이면 워크플로가 setup-go 캐시를 끔. 잡 사이에 남음 |
 | Playwright 캐시 | 노드 hostPath `/var/lib/ci-cache/ms-playwright` → runner 컨테이너 `/ci-cache/ms-playwright`(`PLAYWRIGHT_BROWSERS_PATH`). 이미 받은 브라우저 버전은 `npx playwright install`이 건너뜀. 버전당 약 0.5~1GB, 자동 정리 없음. apt 캐시는 두지 않음(러너끼리 잠금 충돌) |
