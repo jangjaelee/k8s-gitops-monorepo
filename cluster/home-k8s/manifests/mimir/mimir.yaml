@@ -1,0 +1,119 @@
+# grafana/mimir 3.2.3 monolithic(-target=all) — home-k8s, InfraLens PoC가 읽는 장기 저장(테넌트 home-k8s)
+# 저장은 filesystem(local-path PVC 40Gi, worker-node-02 고정), 보존 30일, 멀티테넌시 켬. 앞단 basic auth는 gateway.yaml
+# PVC 산정: 약 4,450샘플/s × 30일 ≈ 115억 샘플 ≈ 17~20GB(블록) + WAL·head·compactor 작업 공간 (2026-10-27)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mimir-config
+  namespace: mimir
+data:
+  mimir.yaml: |
+    target: all
+    multitenancy_enabled: true
+    activity_tracker:
+      filepath: /data/metrics-activity.log   # 기본값은 작업 폴더(./)라 비root에서 쓰기 거부됨
+    server:
+      http_listen_port: 8080
+      grpc_listen_port: 9095
+      log_level: info
+    common:
+      storage:
+        backend: filesystem
+    blocks_storage:
+      filesystem:
+        dir: /data/blocks
+      tsdb:
+        dir: /data/tsdb
+      bucket_store:
+        sync_dir: /data/tsdb-sync
+    compactor:
+      data_dir: /data/compactor
+      sharding_ring:
+        kvstore: {store: inmemory}
+    distributor:
+      ring:
+        kvstore: {store: inmemory}
+    ingester:
+      ring:
+        kvstore: {store: inmemory}
+        replication_factor: 1
+    store_gateway:
+      sharding_ring:
+        kvstore: {store: inmemory}
+        replication_factor: 1
+    ruler_storage:
+      filesystem:
+        dir: /data/rules
+    alertmanager_storage:
+      filesystem:
+        dir: /data/alertmanager
+    limits:
+      compactor_blocks_retention_period: 30d
+      # Istio 지표(istio_requests_total 등)는 라벨이 31~33개라 기본 30이면 400으로 거부됨(2026-10-27 확인)
+      max_label_names_per_series: 50
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mimir
+  namespace: mimir
+spec:
+  serviceName: mimir
+  replicas: 1
+  selector:
+    matchLabels: {app: mimir}
+  template:
+    metadata:
+      labels: {app: mimir}
+    spec:
+      # local-path PV가 노드에 묶이므로 디스크 여유가 가장 큰 worker-node-02에 고정. worker-node-04(CI 러너, dedicated taint)에는 가지 않는다
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: [worker-node-02]
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+      containers:
+        - name: mimir
+          image: grafana/mimir:3.2.3
+          args: ["-config.file=/etc/mimir/mimir.yaml"]
+          workingDir: /data   # ruler·activity 등 기본 상대 경로(./)가 PVC로 가게
+          ports:
+            - {name: http, containerPort: 8080}
+            - {name: grpc, containerPort: 9095}
+          readinessProbe:
+            httpGet: {path: /ready, port: http}
+            initialDelaySeconds: 15
+          resources:
+            requests: {cpu: 500m, memory: 1536Mi}
+            limits: {cpu: "2", memory: 3Gi}
+          volumeMounts:
+            - {name: config, mountPath: /etc/mimir}
+            - {name: data, mountPath: /data}
+      volumes:
+        - name: config
+          configMap: {name: mimir-config}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: local-path
+        resources:
+          requests: {storage: 40Gi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mimir
+  namespace: mimir
+spec:
+  selector: {app: mimir}
+  ports:
+    - {name: http, port: 8080, targetPort: http}
