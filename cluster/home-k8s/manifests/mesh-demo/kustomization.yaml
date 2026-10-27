@@ -1,0 +1,24 @@
+# bookinfo.yaml은 Istio 원본 그대로 두고, 사이드카 메모리 limit만 Istio 기본 1Gi → 256Mi로 패치한다(실사용 약 45Mi, 2026-10-27 PM 결정).
+# proxyMemoryLimit만 주면 Istio가 CPU request·limit을 빼고 memory request도 256Mi로 올리므로 나머지 기본값을 같이 적는다
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - bookinfo.yaml
+  - loadgen.yaml
+patches:
+  - target:
+      kind: Deployment
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: any
+      spec:
+        template:
+          metadata:
+            annotations:
+              sidecar.istio.io/proxyCPU: "100m"
+              sidecar.istio.io/proxyMemory: "128Mi"
+              sidecar.istio.io/proxyCPULimit: "2"
+              sidecar.istio.io/proxyMemoryLimit: "256Mi"

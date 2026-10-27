@@ -27,6 +27,44 @@ spec:
           - name: kube.gateway.podLabels.sidecar\.istio\.io/inject
             value: "true"
             forceString: true
+          # 사이드카 자원: 메모리 limit만 Istio 기본 1Gi → 256Mi(실사용 약 45~57Mi, 2026-10-27 PM 결정).
+          # proxyMemoryLimit만 주면 Istio가 CPU request·limit을 빼고 memory request도 256Mi로 올리므로 나머지 기본값을 같이 적는다
+          - name: app.podAnnotations.sidecar\.istio\.io/proxyCPU
+            value: "100m"
+            forceString: true
+          - name: app.podAnnotations.sidecar\.istio\.io/proxyMemory
+            value: "128Mi"
+            forceString: true
+          - name: app.podAnnotations.sidecar\.istio\.io/proxyCPULimit
+            value: "2"
+            forceString: true
+          - name: app.podAnnotations.sidecar\.istio\.io/proxyMemoryLimit
+            value: "256Mi"
+            forceString: true
+          - name: web.podAnnotations.sidecar\.istio\.io/proxyCPU
+            value: "100m"
+            forceString: true
+          - name: web.podAnnotations.sidecar\.istio\.io/proxyMemory
+            value: "128Mi"
+            forceString: true
+          - name: web.podAnnotations.sidecar\.istio\.io/proxyCPULimit
+            value: "2"
+            forceString: true
+          - name: web.podAnnotations.sidecar\.istio\.io/proxyMemoryLimit
+            value: "256Mi"
+            forceString: true
+          - name: kube.gateway.podAnnotations.sidecar\.istio\.io/proxyCPU
+            value: "100m"
+            forceString: true
+          - name: kube.gateway.podAnnotations.sidecar\.istio\.io/proxyMemory
+            value: "128Mi"
+            forceString: true
+          - name: kube.gateway.podAnnotations.sidecar\.istio\.io/proxyCPULimit
+            value: "2"
+            forceString: true
+          - name: kube.gateway.podAnnotations.sidecar\.istio\.io/proxyMemoryLimit
+            value: "256Mi"
+            forceString: true
           # 사이드카 뒤에서는 접속 주소가 127.0.0.6이 되므로 XFF를 믿을 대역에 더한다(values 파일의 목록을 통째로 바꿈, nginx real_ip도 같은 목록)
           - name: app.trustedProxyCIDRs
             value: "{10.0.0.0/16,127.0.0.6/32}"
