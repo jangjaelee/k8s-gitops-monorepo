@@ -1,0 +1,7 @@
+# M19 PoC 메시 데이터용 데모 네임스페이스. 사이드카 자동 주입, PSA 라벨은 붙이지 않는다(D80)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mesh-demo
+  labels:
+    istio-injection: enabled

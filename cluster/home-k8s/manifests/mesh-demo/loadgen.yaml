@@ -1,0 +1,27 @@
+# bookinfo productpage에 초당 약 2건 요청을 보내 메시 지표(istio_requests_total 등)를 만든다
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loadgen
+  namespace: mesh-demo
+  labels:
+    app: loadgen
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loadgen
+  template:
+    metadata:
+      labels:
+        app: loadgen
+    spec:
+      containers:
+        - name: loadgen
+          image: curlimages/curl:8.11.1
+          command: ["/bin/sh", "-c"]
+          args:
+            - while true; do curl -s -o /dev/null http://productpage:9080/productpage; sleep 0.5; done
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {cpu: 100m, memory: 64Mi}
