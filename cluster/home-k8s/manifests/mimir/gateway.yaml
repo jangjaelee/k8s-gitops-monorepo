@@ -1,0 +1,65 @@
+# Mimir 앞 basic auth 프록시(nginx 1.29.2-alpine). htpasswd는 Secret mimir/mimir-basic-auth(레포·화면에 넣지 않음, 키 htpasswd)
+# 클러스터 안: http://mimir-gateway.mimir.svc:8080/prometheus, 밖: https://mimir.awx.kr/prometheus (httproute.yaml)
+# X-Scope-OrgID(테넌트 home-k8s)는 클라이언트가 보내고 프록시는 그대로 넘긴다
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mimir-gateway-config
+  namespace: mimir
+data:
+  default.conf: |
+    server {
+      listen 8080;
+      location = /healthz { auth_basic off; return 200 "ok\n"; }
+      location / {
+        auth_basic "mimir";
+        auth_basic_user_file /etc/nginx/auth/htpasswd;
+        proxy_pass http://mimir.mimir.svc:8080;
+        proxy_set_header X-Scope-OrgID $http_x_scope_orgid;
+        proxy_read_timeout 300s;
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mimir-gateway
+  namespace: mimir
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: mimir-gateway}
+  template:
+    metadata:
+      labels: {app: mimir-gateway}
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.29.2-alpine
+          ports:
+            - {name: http, containerPort: 8080}
+          readinessProbe:
+            httpGet: {path: /healthz, port: http}
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {cpu: 200m, memory: 64Mi}
+          volumeMounts:
+            - {name: conf, mountPath: /etc/nginx/conf.d}
+            - {name: auth, mountPath: /etc/nginx/auth, readOnly: true}
+      volumes:
+        - name: conf
+          configMap: {name: mimir-gateway-config}
+        - name: auth
+          secret:
+            secretName: mimir-basic-auth
+            items: [{key: htpasswd, path: htpasswd}]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mimir-gateway
+  namespace: mimir
+spec:
+  selector: {app: mimir-gateway}
+  ports:
+    - {name: http, port: 8080, targetPort: http}

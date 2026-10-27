@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mimir
+  namespace: argo-cd
+spec:
+  project: o11y
+  source:
+    repoURL: https://github.com/jangjaelee/k8s-gitops-monorepo.git
+    targetRevision: main
+    path: cluster/home-k8s/manifests/mimir
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: mimir
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+      - CreateNamespace=true
