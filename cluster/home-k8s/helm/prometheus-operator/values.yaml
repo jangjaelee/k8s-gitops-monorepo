@@ -1705,7 +1705,19 @@ prometheus:
 
     ## The remote_write spec configuration for Prometheus.
     ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api-reference/api.md#remotewritespec
-    remoteWrite: []
+    # Mimir(manifests/mimir/)로 장기 저장. 프록시 basic auth 자격은 Secret prometheus-operator/mimir-remote-write(레포 밖)
+    # 테넌트는 X-Scope-OrgID home-k8s. Mimir가 멈춰도 로컬 수집·보존(7일)은 그대로이고 쓰기만 재시도한다
+    remoteWrite:
+      - url: http://mimir-gateway.mimir.svc:8080/api/v1/push
+        headers:
+          X-Scope-OrgID: home-k8s
+        basicAuth:
+          username:
+            name: mimir-remote-write
+            key: username
+          password:
+            name: mimir-remote-write
+            key: password
     # - url: http://remote1/push
     ## additionalRemoteWrite is appended to remoteWrite
     additionalRemoteWrite: []

@@ -74,7 +74,7 @@ CNI나 Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 �
 | mesh-demo | system | mesh-demo | 이 레포 path @ main | Istio samples bookinfo 1.30.3 (이미지 1.20.3), curl 8.11.1 | `manifests/mesh-demo/` | M19 PoC 메시 데이터용 데모. istio-injection=enabled, PSA 라벨 없음, 외부 노출 없음. 사이드카 limit 256Mi(kustomize 패치). PM 요청 시 삭제 |
 | kube-state-metrics | system | kube-system | prometheus-community/kube-state-metrics 7.4.0 | v2.19.0 | 기본값 | |
 | metric-server | o11y | kube-system | metrics-server/metrics-server 3.13.0 | v0.8.0 | `helm/metrics-server/values.yaml` | release 이름 `metric-server` |
-| kube-prometheus-stack | o11y | prometheus-operator | prometheus-community/kube-prometheus-stack 84.1.0 | operator v0.90.1, Prometheus v3.11.3 | `helm/prometheus-operator/values.yaml` | Prometheus 1개(보존 7일, local-path 10Gi). Istio 수집: PodMonitor `envoy-stats`, ServiceMonitor `istiod`. Grafana·Alertmanager·node-exporter 끔 |
+| kube-prometheus-stack | o11y | prometheus-operator | prometheus-community/kube-prometheus-stack 84.1.0 | operator v0.90.1, Prometheus v3.11.3 | `helm/prometheus-operator/values.yaml` | Prometheus 1개(보존 7일, local-path 10Gi, remoteWrite → Mimir 테넌트 home-k8s). Istio 수집: PodMonitor `envoy-stats`, ServiceMonitor `istiod`. Grafana·Alertmanager·node-exporter 끔 |
 | kiali-operator | o11y | kiali-operator | kiali/kiali-operator 2.33.0 (https://kiali.org/helm-charts) | Kiali v2.33.0 | `helm/kiali-operator/values.yaml` | 차트가 Kiali CR(`istio-system/kiali`)을 만들고 operator가 Kiali 서버를 istio-system에 띄움. `https://kiali.awx.kr`, 로그인 token(ServiceAccount 토큰), 쓰기 허용, Prometheus는 kube-prometheus-stack |
 
 ### Argo CD 저장소 등록
