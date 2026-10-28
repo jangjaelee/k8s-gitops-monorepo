@@ -712,7 +712,7 @@ kube-state-metrics:
         honorLabels: true
 
 nodeExporter:
-  enabled: false
+  enabled: true       # 2026-10-29 켬: InfraLens Kubernetes 노드 추이(디스크·호스트 망). 차트 기본 toleration(NoSchedule Exists)으로 master·CI 노드 포함 6노드
   operatingSystems:
     linux:
       enabled: true
@@ -724,6 +724,9 @@ nodeExporter:
 
 prometheus-node-exporter:
   namespaceOverride: ""
+  resources:          # 노드당 요청 50m·32Mi(CI 노드 러너 수용 수에 영향 없음)
+    requests: {cpu: 50m, memory: 32Mi}
+    limits: {memory: 64Mi}
   podLabels:
     jobLabel: node-exporter
   releaseLabel: true

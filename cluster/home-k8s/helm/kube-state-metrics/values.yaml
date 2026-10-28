@@ -1,0 +1,10 @@
+# chart: prometheus-community/kube-state-metrics 7.4.0  (Argo CD app: argocd/applications/kube-state-metrics.yaml)
+# 2026-10-29: kube-prometheus-stack Prometheus가 수집하도록 ServiceMonitor를 켠다(InfraLens Kubernetes 노드 추이·node-exporter 노드 맞춤용).
+# KSM 출력은 그대로 두고, 수집할 때 InfraLens가 쓰는 8개 지표만 남긴다(시계열 증가 억제). 지표가 더 필요하면 아래 regex에 더한다.
+prometheus:
+  monitor:
+    enabled: true
+    metricRelabelings:
+      - sourceLabels: [__name__]
+        action: keep
+        regex: kube_(pod_info|pod_status_phase|pod_container_resource_requests|pod_container_resource_limits|node_info|node_status_allocatable|node_status_capacity|node_status_condition)
