@@ -55,6 +55,9 @@ web:
 # 게이트웨이 시작 때 Map 기본 종류 14개 + node·event·namespace를 켜 두고 끄지 않는다. 나머지는 1시간 안 보면 끈다.
 # 캐시가 idle로 꺼진 뒤 첫 응답이 빈 캐시라 개요(/kube/in-cluster)에서 워크로드가 0으로 보이던 문제를 PoC에서 피한다.
 kube:
+  # 2026-10-29 켬: 3D 지도·Istio 화면이 Prometheus(연결 관리에서 정함)의 Istio 지표를 읽음. 꺼져 있으면 메시 응답이 traffic_disabled. Hubble은 없음(Flannel)
+  traffic:
+    enabled: true
   gateway:
     podLabels:
       sidecar.istio.io/inject: "true"
