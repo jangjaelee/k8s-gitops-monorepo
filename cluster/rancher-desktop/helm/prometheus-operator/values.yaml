@@ -1088,7 +1088,7 @@ prometheusOperator:
   extraVolumeMounts: []
 
 prometheus:
-  enabled: false
+  enabled: true       # 2026-10-29 켬: InfraLens Istio 화면(istiod·사이드카 지표)
   agentMode: false
   annotations: {}
   additionalLabels: {}
@@ -1525,7 +1525,7 @@ prometheus:
     ## prometheus resource to be created with selectors based on values in the helm deployment,
     ## which will also match the servicemonitors created
     ##
-    serviceMonitorSelectorNilUsesHelmValues: true
+    serviceMonitorSelectorNilUsesHelmValues: false # 다른 앱이 만든 ServiceMonitor도 수집
 
     ## ServiceMonitors to be selected for target discovery.
     ## If {}, select all ServiceMonitors
@@ -1548,7 +1548,7 @@ prometheus:
     ## prometheus resource to be created with selectors based on values in the helm deployment,
     ## which will also match the podmonitors created
     ##
-    podMonitorSelectorNilUsesHelmValues: true
+    podMonitorSelectorNilUsesHelmValues: false     # 차트 라벨이 없는 PodMonitor도 수집(아래 envoy-stats 등)
 
     ## PodMonitors to be selected for target discovery.
     ## If {}, select all PodMonitors
@@ -1616,7 +1616,7 @@ prometheus:
 
     ## How long to retain metrics
     ##
-    retention: 10d
+    retention: 3d       # 단일 노드 Mac, Istio 화면용 단기 보존
 
     ## Maximum size of metrics
     ## Unit format should be in the form of "50GiB"
@@ -1714,14 +1714,26 @@ prometheus:
 
     ## Resource limits & requests
     ##
-    resources: {}
+    resources:
+      requests:
+        cpu: 100m
+        memory: 512Mi
+      limits:
+        memory: 1536Mi
     # requests:
     #   memory: 400Mi
 
     ## Prometheus StorageSpec for persistent data
     ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/platform/storage.md
     ##
-    storageSpec: {}
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: local-path
+          accessModes: [ReadWriteOnce]
+          resources:
+            requests:
+              storage: 5Gi
     ## Using PersistentVolumeClaim
     ##
     #  volumeClaimTemplate:
@@ -2087,8 +2099,52 @@ prometheus:
     ## https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api-reference/api.md#scrapeprotocolstring-alias
     scrapeProtocols: []
   additionalRulesForClusterRole: []
-  additionalServiceMonitors: []
-  additionalPodMonitors: []
+  additionalServiceMonitors:
+    - name: istiod
+      jobLabel: istio
+      namespaceSelector:
+        matchNames: [istio-system]
+      selector:
+        matchLabels:
+          istio: pilot
+        matchExpressions:
+          - key: istio.io/tag
+            operator: DoesNotExist
+      endpoints:
+        - port: http-monitoring
+          interval: 15s
+  additionalPodMonitors:
+    - name: envoy-stats
+      jobLabel: envoy-stats
+      namespaceSelector:
+        any: true
+      selector:
+        matchExpressions:
+          - key: istio-prometheus-ignore
+            operator: DoesNotExist
+      podMetricsEndpoints:
+        - path: /stats/prometheus
+          interval: 15s
+          relabelings:
+            - action: keep
+              sourceLabels: [__meta_kubernetes_pod_container_name]
+              regex: istio-proxy
+            - action: keep
+              sourceLabels: [__meta_kubernetes_pod_annotationpresent_prometheus_io_scrape]
+            - action: replace
+              sourceLabels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+              regex: ([^:]+)(?::\d+)?;(\d+)
+              replacement: $1:$2
+              targetLabel: __address__
+            - action: labeldrop
+              regex: __meta_kubernetes_pod_label_(.+)
+            - action: replace
+              sourceLabels: [__meta_kubernetes_namespace]
+              targetLabel: namespace
+            - action: replace
+              sourceLabels: [__meta_kubernetes_pod_name]
+              targetLabel: pod
+
 
 thanosRuler:
   enabled: false
