@@ -1,0 +1,13 @@
+# CI 러너(helm/arc-infralens/values.yaml template.spec.priorityClassName)용 낮은 우선순위.
+# 서비스 Pod는 PriorityClass가 없어 0이다. 러너는 그보다 낮고 preemptionPolicy Never라 다른 Pod를 밀어내지 않는다.
+# 자리가 모자라면 서비스 Pod가 러너를 밀어낼 수 있고, kubelet 메모리·디스크 축출도 러너가 먼저다.
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: ci-runner-low
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"   # 러너 Pod가 참조하기 전에 먼저 만든다
+value: -100
+globalDefault: false
+preemptionPolicy: Never
+description: "CI 러너(arc-infralens). 서비스(0)보다 낮고 다른 Pod를 밀어내지 않는다."
