@@ -10,7 +10,7 @@
 
 | 항목 | 값 |
 |---|---|
-| 구성 | kubeadm, 5노드(control-plane 1 + worker 3 + CI 전용 worker-node-04, 아래 "CI 전용 노드"), Ubuntu 24.04, 모든 노드 Wi-Fi(192.168.50.0/24) |
+| 구성 | kubeadm, 6노드(control-plane 1 + worker 3 + CI 전용 worker-node-04·05, 아래 "CI 전용 노드"), Ubuntu 24.04, 모든 노드 Wi-Fi(192.168.50.0/24) |
 | Kubernetes | v1.36.0 |
 | 컨테이너 런타임 | containerd 2.4.2 |
 | CNI | Cilium 1.20.2 — kube-proxy 대체, VXLAN, LB IPAM + L2 announcement, Local Redirect Policy |
@@ -307,7 +307,7 @@ Actions Runner Controller(러너 스케일 셋 모드)로 GitHub Actions self-ho
 | 컨트롤러 | 앱 `arc-controller`, ns `arc-systems`, `watchSingleNamespace: arc-runners`(ClusterRole 없음). 리스너 Pod도 여기 뜹니다 |
 | 스케일 셋 | 앱 `arc-infralens`, ns `arc-runners`, 이름 **`arc-infralens`**(= 워크플로 `runs-on` 값), 저장소 단위 등록 |
 | 러너 | ephemeral(잡 하나 후 삭제), min 0 / max 12, linux/amd64. Pod당 requests 3 CPU·2.5Gi, 메모리 limit 5Gi(runner 2 CPU·2Gi / 4Gi, dind 1 CPU·512Mi / 1Gi. dind는 2026-10-27 실사용 최대 491Mi 기준으로 줄임) |
-| 배치 | CI 전용 worker-node-04를 먼저 채우고(preferred nodeAffinity + taint toleration) 넘치면 일반 워커. node-04에는 CPU 기준 러너 5개(메모리도 20Gi로 들어감) |
+| 배치 | CI 전용 worker-node-04·05를 먼저 채우고(preferred nodeAffinity + taint toleration) 넘치면 일반 워커. CPU 기준 node-04에 러너 5개(메모리도 20Gi로 들어감), node-05(32 CPU·31Gi)에 10개(requests 메모리 25Gi) |
 | Go 캐시 | 노드 hostPath `/var/lib/ci-cache/go` → 러너 `/ci-cache/go`(`GOMODCACHE`·`GOCACHE`), `INFRALENS_CI_LOCAL_GO_CACHE=1`이면 워크플로가 setup-go 캐시를 끔. 잡 사이에 남음 |
 | Playwright 캐시 | 노드 hostPath `/var/lib/ci-cache/ms-playwright` → runner 컨테이너 `/ci-cache/ms-playwright`(`PLAYWRIGHT_BROWSERS_PATH`). 이미 받은 브라우저 버전은 `npx playwright install`이 건너뜀. 버전당 약 0.5~1GB, 자동 정리 없음. apt 캐시는 두지 않음(러너끼리 잠금 충돌) |
 | Docker 캐시 | 앱 `ci-cache`(ns `ci-cache`). dind dockerd `--registry-mirror=http://registry-mirror.ci-cache.svc.cluster.local:5000`, env `INFRALENS_CI_DOCKERHUB_MIRROR`(미러)·`INFRALENS_CI_BUILD_CACHE`(`build-cache.ci-cache.svc.cluster.local:5000`, BuildKit `type=registry`). HTTP·인증 없음, NetworkPolicy로 러너에서만 |
@@ -346,11 +346,13 @@ GitHub `jangjaelee/infralens` → Settings → Actions → Runners에 스케일 
 
 ### CI 전용 노드
 
-worker-node-04(16 CPU·22Gi, 디스크 전체 456G·2026-10-20 여유 411G)는 러너 전용입니다. taint와 라벨은 Argo CD가 아니라 kubectl로 붙입니다(노드 객체는 레포로 관리하지 않습니다).
+worker-node-04(16 CPU·22Gi, 디스크 전체 456G·2026-10-20 여유 411G)와 worker-node-05(192.168.50.116, 32 CPU·31Gi, nvme 439G, 2026-10-28 join)는 러너 전용입니다. Docker 캐시(ci-cache)는 node-04에만 있습니다. taint와 라벨은 Argo CD가 아니라 kubectl로 붙입니다(노드 객체는 레포로 관리하지 않습니다).
 
 ```bash
 kubectl taint node worker-node-04 dedicated=ci:NoSchedule
 kubectl label node worker-node-04 node-role.kubernetes.io/ci=
+# worker-node-05는 join 때 JoinConfiguration nodeRegistration.taints로 taint를 넣고 라벨만 붙였다
+kubectl label node worker-node-05 node-role.kubernetes.io/ci= node-role.kubernetes.io/worker=
 ```
 
 - DaemonSet(cilium, cilium-envoy, node-local-dns, istio-cni-node)은 모든 NoSchedule taint를 견뎌 이 노드에도 뜹니다. 새 DaemonSet을 넣을 때는 toleration을 확인합니다.
@@ -362,7 +364,7 @@ kubectl label node worker-node-04 node-role.kubernetes.io/ci=
 되돌리기:
 
 1. 러너 배치·캐시: 이 설정을 넣은 PR을 revert합니다(Argo CD 자동 sync). 이후 러너는 일반 워커에만 뜨고 Actions 캐시를 다시 씁니다.
-2. 노드: `kubectl taint node worker-node-04 dedicated=ci:NoSchedule-` / `kubectl label node worker-node-04 node-role.kubernetes.io/ci-`
+2. 노드: `kubectl taint node worker-node-04 dedicated=ci:NoSchedule-` / `kubectl label node worker-node-04 node-role.kubernetes.io/ci-`. worker-node-05는 러너 잡이 끝난 뒤 `kubectl drain worker-node-05 --ignore-daemonsets --delete-emptydir-data` → `kubectl delete node worker-node-05` → 노드에서 `sudo kubeadm reset`
 3. Docker 캐시: 위 PR revert와 함께 `kubectl -n argo-cd delete app ci-cache`(네임스페이스는 남으니 `kubectl delete ns ci-cache`).
 4. 캐시 디렉터리는 노드마다 `sudo rm -rf /var/lib/ci-cache`.
 

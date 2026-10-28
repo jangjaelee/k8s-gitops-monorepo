@@ -9,7 +9,7 @@ runnerScaleSetName: arc-infralens
 minRunners: 0
 # 러너 Pod 하나가 requests 3 CPU·2.5Gi를 쓴다(runner 2 CPU·2Gi + dind 1 CPU·512Mi, 아래 template). 12개 = 36 CPU·30Gi.
 # limits는 메모리 5Gi(runner 4Gi + dind 1Gi), 12개 = 60Gi(2026-10-27 dind 4Gi→1Gi).
-# CI 전용 worker-node-04(16 CPU·22Gi)에 CPU 기준 5개가 먼저 들어가고, 나머지는 일반 워커로 넘친다(아래 affinity).
+# CI 전용 worker-node-04(16 CPU·22Gi)에 CPU 기준 5개, worker-node-05(32 CPU·31Gi, 2026-10-28)에 10개가 먼저 들어가고, 나머지는 일반 워커로 넘친다(아래 affinity).
 # 일반 워커 여유(2026-10-21): node-01 3개, node-02 2개(메모리 기준), node-03 2개 → 모두 합쳐 12개(여유 0). 늘리기 전에 다시 계산한다.
 maxRunners: 12
 
@@ -34,7 +34,7 @@ listenerTemplate:
 template:
   spec:
     automountServiceAccountToken: false   # 러너에 클러스터 API 자격 증명을 주지 않는다(SA도 권한 없는 gha-rs-no-permission)
-    # CI 전용 노드(worker-node-04, taint dedicated=ci:NoSchedule, 라벨 node-role.kubernetes.io/ci)를 먼저 채우고 넘치면 일반 워커를 쓴다.
+    # CI 전용 노드(worker-node-04·05, taint dedicated=ci:NoSchedule, 라벨 node-role.kubernetes.io/ci)를 먼저 채우고 넘치면 일반 워커를 쓴다.
     # 노드 간 분산(topologySpreadConstraints)은 이 우선순위와 부딪혀서 두지 않는다. taint·라벨은 kubectl로 붙인다(README "CI 전용 노드").
     tolerations:
       - key: dedicated
