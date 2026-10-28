@@ -10,7 +10,7 @@
 ## wifi-promisc가 필요한 이유
 
 worker-01/02의 Broadcom `brcmfmac` 드라이버는 promiscuous 모드가 꺼져 있으면 노드 IP가 아닌 주소(Cilium LB IP)의 ARP 요청을 받지 못합니다.
-그러면 이 노드가 L2 announcement lease를 잡았을 때 LoadBalancer IP가 응답하지 않습니다. 5노드 모두 설치했습니다(worker-node-04는 2026-10-21). Gateway Service가 etp=Local이라 지금은 Gateway Pod가 있는 노드만 lease를 잡지만, 노드마다 같은 설정으로 맞춥니다.
+그러면 이 노드가 L2 announcement lease를 잡았을 때 LoadBalancer IP가 응답하지 않습니다. 6노드 모두 설치했습니다(worker-node-04는 2026-10-21, worker-node-05는 2026-10-28, iwlwifi). Gateway Service가 etp=Local이라 지금은 Gateway Pod가 있는 노드만 lease를 잡지만, 노드마다 같은 설정으로 맞춥니다.
 
 - 부팅 시: `wifi-promisc.service` (oneshot)
 - Wi-Fi 재연결 시: `/etc/NetworkManager/dispatcher.d/90-wifi-promisc`
