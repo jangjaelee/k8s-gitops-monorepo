@@ -68,7 +68,7 @@ CNI나 Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 �
 | vault | system | vault | hashicorp/vault 0.34.1 + 이 레포 path | Vault 2.0.4 | `helm/vault/values.yaml`, `manifests/vault/` | raft 단일 노드, 자동 unseal CronJob |
 | external-secrets | system | external-secrets | external-secrets/external-secrets 2.13.0 + 이 레포 path | v2.13.0 | `helm/external-secrets/values.yaml`, `manifests/external-secrets/` | ClusterSecretStore `vault`, `ServerSideDiff=true` |
 | arc-controller | system | arc-systems | actions-runner-controller-charts/gha-runner-scale-set-controller 0.15.0 (OCI) + 이 레포 path | ARC 0.15.0 | `helm/arc-controller/values.yaml`, `manifests/arc-controller/` | 네임스페이스 arc-systems·arc-runners, `watchSingleNamespace: arc-runners` |
-| arc-infralens | system | arc-runners | actions-runner-controller-charts/gha-runner-scale-set 0.15.0 (OCI) + 이 레포 path | ARC 0.15.0 | `helm/arc-infralens/values.yaml`, `manifests/arc-infralens/` | 러너 스케일 셋 `arc-infralens`(jangjaelee/infralens), DinD, ExternalSecret, NetworkPolicy |
+| arc-infralens | system | arc-runners | actions-runner-controller-charts/gha-runner-scale-set 0.15.0 (OCI) + 이 레포 path | ARC 0.15.0 | `helm/arc-infralens/values.yaml`, `manifests/arc-infralens/` | 러너 스케일 셋 `arc-infralens`(jangjaelee/infralens), DinD, ExternalSecret, NetworkPolicy, PriorityClass |
 | ci-cache | system | ci-cache | 이 레포 path | registry 3.1.2 | `manifests/ci-cache/` | CI 러너용 Docker Hub 미러(프록시)·BuildKit 캐시 레지스트리, worker-node-04 hostPath, 아래 "CI 전용 노드" |
 | infralens-poc | default | infralens | github.com/jangjaelee/infralens(비공개) `deploy/helm/infralens` @ 177161b | sha-177161b (ghcr.io/jangjaelee) | `helm/infralens-poc/values.yaml` | InfraLens PoC, 배포 키 필요(아래 "InfraLens PoC" 절). app·web·kube-gateway에 Istio 사이드카(Pod 라벨)·limit 256Mi, 트래픽 탭 켬 |
 | mesh-demo | system | mesh-demo | 이 레포 path @ main | Istio samples bookinfo 1.30.3 (이미지 1.20.3), curl 8.11.1 | `manifests/mesh-demo/` | M19 PoC 메시 데이터용 데모. istio-injection=enabled, PSA 라벨 없음, 외부 노출 없음. 사이드카 limit 256Mi(kustomize 패치). PM 요청 시 삭제 |
@@ -306,8 +306,9 @@ Actions Runner Controller(러너 스케일 셋 모드)로 GitHub Actions self-ho
 |---|---|
 | 컨트롤러 | 앱 `arc-controller`, ns `arc-systems`, `watchSingleNamespace: arc-runners`(ClusterRole 없음). 리스너 Pod도 여기 뜹니다 |
 | 스케일 셋 | 앱 `arc-infralens`, ns `arc-runners`, 이름 **`arc-infralens`**(= 워크플로 `runs-on` 값), 저장소 단위 등록 |
-| 러너 | ephemeral(잡 하나 후 삭제), min 0 / max 12, linux/amd64. Pod당 requests 3 CPU·2.5Gi, 메모리 limit 5Gi(runner 2 CPU·2Gi / 4Gi, dind 1 CPU·512Mi / 1Gi. dind는 2026-10-27 실사용 최대 491Mi 기준으로 줄임) |
-| 배치 | CI 전용 worker-node-04·05를 먼저 채우고(preferred nodeAffinity + taint toleration) 넘치면 일반 워커. CPU 기준 node-04에 러너 5개(메모리도 20Gi로 들어감), node-05(32 CPU·31Gi)에 10개(requests 메모리 25Gi) |
+| 러너 | ephemeral(잡 하나 후 삭제), min 0 / max 14, linux/amd64. Pod당 requests 3 CPU·3.5Gi, 메모리 limit 5Gi(runner 2 CPU·3Gi / 4Gi, dind 1 CPU·512Mi / 1Gi. dind는 2026-10-27 실사용 최대 491Mi 기준으로 줄임) |
+| 배치 | CI 전용 worker-node-04·05를 먼저 채우고(preferred nodeAffinity + taint toleration), 넘치면 라벨 `awx.kr/runner-overflow=<노드 이름>`이 붙은 일반 노드에 노드당 1개까지(required nodeAffinity + 그 라벨 기준 required podAntiAffinity). 지금 넘침 노드는 worker-node-02뿐입니다(01은 PoC DB와 같은 디스크, 03은 디스크 여유 부족이라 뺌). 수용은 node-04 5개(CPU 기준), node-05 8개(메모리 기준), node-02 1개 = 14개 |
+| 우선순위 | PriorityClass `ci-runner-low`(value -100, `preemptionPolicy: Never`, `manifests/arc-infralens/priorityclass.yaml`). 서비스 Pod(PriorityClass 없음 = 0)보다 낮아, 러너는 남을 밀지 않고 자리가 모자라면 서비스가 러너를 밀어냅니다(그 CI 잡은 실패). kubelet 메모리·디스크 축출도 러너가 먼저입니다 |
 | Go 캐시 | 노드 hostPath `/var/lib/ci-cache/go` → 러너 `/ci-cache/go`(`GOMODCACHE`·`GOCACHE`), `INFRALENS_CI_LOCAL_GO_CACHE=1`이면 워크플로가 setup-go 캐시를 끔. 잡 사이에 남음 |
 | Playwright 캐시 | 노드 hostPath `/var/lib/ci-cache/ms-playwright` → runner 컨테이너 `/ci-cache/ms-playwright`(`PLAYWRIGHT_BROWSERS_PATH`). 이미 받은 브라우저 버전은 `npx playwright install`이 건너뜀. 버전당 약 0.5~1GB, 자동 정리 없음. apt 캐시는 두지 않음(러너끼리 잠금 충돌) |
 | Docker 캐시 | 앱 `ci-cache`(ns `ci-cache`). dind dockerd `--registry-mirror=http://registry-mirror.ci-cache.svc.cluster.local:5000`, env `INFRALENS_CI_DOCKERHUB_MIRROR`(미러)·`INFRALENS_CI_BUILD_CACHE`(`build-cache.ci-cache.svc.cluster.local:5000`, BuildKit `type=registry`). HTTP·인증 없음, NetworkPolicy로 러너에서만 |
@@ -353,6 +354,9 @@ kubectl taint node worker-node-04 dedicated=ci:NoSchedule
 kubectl label node worker-node-04 node-role.kubernetes.io/ci=
 # worker-node-05는 join 때 JoinConfiguration nodeRegistration.taints로 taint를 넣고 라벨만 붙였다
 kubectl label node worker-node-05 node-role.kubernetes.io/ci= node-role.kubernetes.io/worker=
+# 넘침 노드(러너 노드당 1개). 값은 노드마다 달라야 한다. 넣기 전에 메모리 여유(allocatable − 서비스 requests·실사용) ≥ 5Gi,
+# 디스크 여유(kubelet 축출 기준을 뺀 값) ≥ 60Gi인지 본다. 서비스에 영향이 보이면 바로 뗀다(`awx.kr/runner-overflow-`)
+kubectl label node worker-node-02 awx.kr/runner-overflow=worker-node-02
 ```
 
 - DaemonSet(cilium, cilium-envoy, node-local-dns, istio-cni-node)은 모든 NoSchedule taint를 견뎌 이 노드에도 뜹니다. 새 DaemonSet을 넣을 때는 toleration을 확인합니다.
@@ -364,7 +368,7 @@ kubectl label node worker-node-05 node-role.kubernetes.io/ci= node-role.kubernet
 되돌리기:
 
 1. 러너 배치·캐시: 이 설정을 넣은 PR을 revert합니다(Argo CD 자동 sync). 이후 러너는 일반 워커에만 뜨고 Actions 캐시를 다시 씁니다.
-2. 노드: `kubectl taint node worker-node-04 dedicated=ci:NoSchedule-` / `kubectl label node worker-node-04 node-role.kubernetes.io/ci-`. worker-node-05는 러너 잡이 끝난 뒤 `kubectl drain worker-node-05 --ignore-daemonsets --delete-emptydir-data` → `kubectl delete node worker-node-05` → 노드에서 `sudo kubeadm reset`
+2. 노드: `kubectl taint node worker-node-04 dedicated=ci:NoSchedule-` / `kubectl label node worker-node-04 node-role.kubernetes.io/ci-`. worker-node-05는 러너 잡이 끝난 뒤 `kubectl drain worker-node-05 --ignore-daemonsets --delete-emptydir-data` → `kubectl delete node worker-node-05` → 노드에서 `sudo kubeadm reset`. 넘침은 `kubectl label node worker-node-02 awx.kr/runner-overflow-`(떠 있는 러너는 잡이 끝나면 사라짐)
 3. Docker 캐시: 위 PR revert와 함께 `kubectl -n argo-cd delete app ci-cache`(네임스페이스는 남으니 `kubectl delete ns ci-cache`).
 4. 캐시 디렉터리는 노드마다 `sudo rm -rf /var/lib/ci-cache`.
 

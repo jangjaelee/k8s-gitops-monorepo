@@ -7,11 +7,11 @@ githubConfigSecret: arc-infralens-github-app   # GitHub App 자격 증명 Secret
 runnerScaleSetName: arc-infralens
 
 minRunners: 0
-# 러너 Pod 하나가 requests 3 CPU·2.5Gi를 쓴다(runner 2 CPU·2Gi + dind 1 CPU·512Mi, 아래 template). 12개 = 36 CPU·30Gi.
-# limits는 메모리 5Gi(runner 4Gi + dind 1Gi), 12개 = 60Gi(2026-10-27 dind 4Gi→1Gi).
-# CI 전용 worker-node-04(16 CPU·22Gi)에 CPU 기준 5개, worker-node-05(32 CPU·31Gi, 2026-10-28)에 10개가 먼저 들어가고, 나머지는 일반 워커로 넘친다(아래 affinity).
-# 일반 워커 여유(2026-10-21): node-01 3개, node-02 2개(메모리 기준), node-03 2개 → 모두 합쳐 12개(여유 0). 늘리기 전에 다시 계산한다.
-maxRunners: 12
+# 러너 Pod 하나가 requests 3 CPU·3.5Gi를 쓴다(runner 2 CPU·3Gi + dind 1 CPU·512Mi, 아래 template).
+# limits는 메모리 5Gi(runner 4Gi + dind 1Gi), 디스크 emptyDir 최대 60Gi(work 20Gi + dind-storage 40Gi).
+# 수용(2026-10-28 실측): worker-node-04 5개(CPU 기준, ci-cache 상한 2Gi를 뺀 메모리로도 5개), worker-node-05 8개(메모리 기준),
+# 넘침 노드 worker-node-02 1개 = 14개. worker-node-01(PoC DB와 같은 디스크)·03(디스크 여유 부족)은 넘침에서 뺐다(아래 affinity).
+maxRunners: 14
 
 # Argo CD는 helm lookup을 못 하므로 컨트롤러 ServiceAccount를 직접 적는다(helm/arc-controller/values.yaml, release arc)
 controllerServiceAccount:
@@ -34,8 +34,12 @@ listenerTemplate:
 template:
   spec:
     automountServiceAccountToken: false   # 러너에 클러스터 API 자격 증명을 주지 않는다(SA도 권한 없는 gha-rs-no-permission)
-    # CI 전용 노드(worker-node-04·05, taint dedicated=ci:NoSchedule, 라벨 node-role.kubernetes.io/ci)를 먼저 채우고 넘치면 일반 워커를 쓴다.
-    # 노드 간 분산(topologySpreadConstraints)은 이 우선순위와 부딪혀서 두지 않는다. taint·라벨은 kubectl로 붙인다(README "CI 전용 노드").
+    # CI 전용 노드(worker-node-04·05, taint dedicated=ci:NoSchedule, 라벨 node-role.kubernetes.io/ci)를 먼저 채우고,
+    # 넘치면 라벨 awx.kr/runner-overflow=<노드 이름>이 붙은 일반 노드(지금 worker-node-02)에 노드당 1개까지만 띄운다.
+    # taint·라벨은 kubectl로 붙인다(README "CI 전용 노드").
+    # 서비스보다 낮은 우선순위(manifests/arc-infralens/priorityclass.yaml, preemptionPolicy Never): 러너는 남을 밀지 않고,
+    # 자리가 모자라면 서비스 Pod가 러너를 밀어낼 수 있다(그때 그 CI 잡은 실패).
+    priorityClassName: ci-runner-low
     tolerations:
       - key: dedicated
         operator: Equal
@@ -43,12 +47,28 @@ template:
         effect: NoSchedule
     affinity:
       nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:              # 두 항은 OR
+            - matchExpressions:
+                - key: node-role.kubernetes.io/ci
+                  operator: Exists
+            - matchExpressions:
+                - key: awx.kr/runner-overflow
+                  operator: Exists
         preferredDuringSchedulingIgnoredDuringExecution:
           - weight: 100
             preference:
               matchExpressions:
                 - key: node-role.kubernetes.io/ci
                   operator: Exists
+      # 넘침 노드에서는 러너끼리 같은 노드에 뜨지 않는다. 노드마다 라벨 값이 달라 노드당 1개가 되고,
+      # 이 라벨이 없는 CI 노드는 이 제한을 받지 않는다(2026-10-2x lab에서 확인)
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                actions.github.com/scale-set-name: arc-infralens
+            topologyKey: awx.kr/runner-overflow
     initContainers:
       # Go·Playwright 캐시 hostPath(아래 go-cache·playwright-cache)는 root 소유로 만들어지므로 러너 사용자가 쓸 수 있게 디렉터리만 넘긴다(캐시 내용은 재귀로 건드리지 않는다)
       - name: init-go-cache
@@ -145,7 +165,7 @@ template:
         resources:
           requests:
             cpu: "2"            # 빌드·테스트가 여기서 돈다(실사용 최대 5.5코어). 2026-10-21 1→2
-            memory: 2Gi
+            memory: 3Gi         # 2026-10-28 2Gi→3Gi(노드에 자리를 더 잡아 둔다, 상한은 그대로)
           limits:
             memory: 4Gi
         volumeMounts:
