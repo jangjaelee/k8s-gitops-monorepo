@@ -58,6 +58,10 @@ kube:
   # 2026-10-29 켬: 3D 지도·Istio 화면이 Prometheus(연결 관리에서 정함)의 Istio 지표를 읽음. 꺼져 있으면 메시 응답이 traffic_disabled. Hubble은 없음(Flannel)
   traffic:
     enabled: true
+  # 2026-10-29 켬: Kubernetes 이력 적재(AI 채팅의 Kubernetes 이력 질의용). 게이트웨이가 10분마다 in-cluster를 읽어 raw에 버전을 쌓음.
+  # 적재기 DB 비밀 infralens-db-loader를 게이트웨이에 넣음. 단일 클러스터라 보존은 차트 기본 30일
+  history:
+    enabled: true
   gateway:
     podLabels:
       sidecar.istio.io/inject: "true"
