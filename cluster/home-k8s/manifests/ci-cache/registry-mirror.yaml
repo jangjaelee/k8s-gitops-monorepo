@@ -27,6 +27,7 @@ spec:
       automountServiceAccountToken: false
       nodeSelector:
         node-role.kubernetes.io/ci: ""
+        kubernetes.io/hostname: worker-node-04   # hostPath가 이 노드에 있다. CI 노드가 늘어도 옮겨 가지 않게
       tolerations:
         - key: dedicated
           operator: Equal

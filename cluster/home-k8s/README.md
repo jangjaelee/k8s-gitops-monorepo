@@ -357,7 +357,7 @@ kubectl label node worker-node-04 node-role.kubernetes.io/ci=
 - taint는 NoSchedule이라 붙이기 전에 떠 있던 Pod는 남습니다. 러너 말고 다른 Pod가 남았으면 지워서 다른 노드로 보냅니다.
 - taint와 라벨은 노드 객체에 남으므로 재부팅이나 kubelet 재시작에는 그대로입니다. 노드를 지우고 다시 join할 때만 다시 붙입니다. 이때 taint는 kubeadm `JoinConfiguration.nodeRegistration.taints`로 넣을 수 있지만, `node-role.kubernetes.io/*` 라벨은 kubelet이 스스로 붙일 수 없어(NodeRestriction) join 뒤 위 `kubectl label`을 다시 실행합니다. kubelet `config.yaml`의 `registerWithTaints`는 `kubeadm upgrade node`가 덮어쓰므로 쓰지 않습니다.
 - Go 캐시 비우기: 그 노드에서 `sudo rm -rf /var/lib/ci-cache/go`(러너가 없을 때). 빌드 캐시(`build`)는 Go가 5일 안 쓴 항목을 스스로 지우고, 모듈 캐시(`mod`)는 쌓이기만 하니 디스크를 가끔 봅니다.
-- Docker 캐시(`ci-cache`): 저장소는 node-04의 `/var/lib/ci-cache/registry-mirror`·`build-cache`이고, Service라 어느 노드의 러너든 씁니다. 미러는 받은 지 7일(`REGISTRY_PROXY_TTL`) 지나면 지우고, CronJob `ci-cache/cleanup`이 매일 05:00 KST에 디렉터리마다 40GiB를 넘으면 비웁니다. 미러는 Docker Hub(docker.io)만 캐시합니다(ghcr.io 제외). Docker Hub에는 여전히 익명으로 받습니다(공인 IP당 시간당 100회).
+- Docker 캐시(`ci-cache`): 저장소는 node-04의 `/var/lib/ci-cache/registry-mirror`·`build-cache`이고, CI 노드가 늘어도 옮겨 가지 않게 `kubernetes.io/hostname: worker-node-04`로 고정합니다(정리 CronJob도). Service라 어느 노드의 러너든 씁니다. 미러는 받은 지 7일(`REGISTRY_PROXY_TTL`) 지나면 지우고, CronJob `ci-cache/cleanup`이 매일 05:00 KST에 디렉터리마다 40GiB를 넘으면 비웁니다. 미러는 Docker Hub(docker.io)만 캐시합니다(ghcr.io 제외). Docker Hub에는 여전히 익명으로 받습니다(공인 IP당 시간당 100회).
 
 되돌리기:
 

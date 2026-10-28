@@ -30,6 +30,7 @@ spec:
           automountServiceAccountToken: false
           nodeSelector:
             node-role.kubernetes.io/ci: ""
+            kubernetes.io/hostname: worker-node-04   # 정리할 hostPath가 이 노드에 있다
           tolerations:
             - key: dedicated
               operator: Equal
