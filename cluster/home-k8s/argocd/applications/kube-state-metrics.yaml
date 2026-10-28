@@ -8,10 +8,16 @@ spec:
     namespace: kube-system
     server: https://kubernetes.default.svc
   project: system
-  source:
-    chart: kube-state-metrics
-    repoURL: https://prometheus-community.github.io/helm-charts
-    targetRevision: 7.4.0
+  sources:
+    - chart: kube-state-metrics
+      helm:
+        valueFiles:
+          - $values/cluster/home-k8s/helm/kube-state-metrics/values.yaml
+      repoURL: https://prometheus-community.github.io/helm-charts
+      targetRevision: 7.4.0
+    - ref: values
+      repoURL: https://github.com/jangjaelee/k8s-gitops-monorepo.git
+      targetRevision: main
   syncPolicy:
     automated:
       prune: true
