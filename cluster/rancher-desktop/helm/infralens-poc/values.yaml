@@ -21,6 +21,10 @@ app:
     issuer: https://infralens.awx.kr/dex
   trustedProxyCIDRs:
   - 10.42.0.0/16                 # k3s 기본 Pod CIDR(Flannel)
+  - 127.0.0.6/32                 # Istio 사이드카가 넘기는 연결 주소(docs/installation.md "Istio 사이드카를 넣을 때")
+  # 2026-10-29 Istio 사이드카 주입(InfraLens Istio 화면용). app·web·kube-gateway만, PostgreSQL·수집 CronJob은 넣지 않음
+  podLabels:
+    sidecar.istio.io/inject: "true"
 database:
   app:
     existingSecret: infralens-db-app
@@ -46,9 +50,14 @@ routing:
       sectionName: https-infralens
 web:
   enabled: true
+  podLabels:
+    sidecar.istio.io/inject: "true"
 # 게이트웨이 시작 때 Map 기본 종류 14개 + node·event·namespace를 켜 두고 끄지 않는다. 나머지는 1시간 안 보면 끈다.
 # 캐시가 idle로 꺼진 뒤 첫 응답이 빈 캐시라 개요(/kube/in-cluster)에서 워크로드가 0으로 보이던 문제를 PoC에서 피한다.
 kube:
+  gateway:
+    podLabels:
+      sidecar.istio.io/inject: "true"
   # 접근 현황(누가 어떤 권한을 가졌는지). 켜도 렌더링은 app·kube-gateway env INFRALENS_KUBE_ACCESS_ENABLED만 바뀜(새 RBAC 없음). 보는 최소 역할은 차트 기본 admin. 2026-10-21 켬
   access:
     enabled: true
