@@ -10,7 +10,7 @@
 
 | 항목 | 값 |
 |---|---|
-| 구성 | kubeadm, 6노드(control-plane 1 + worker 3 + CI 전용 worker-node-04·05, 아래 "CI 전용 노드"), Ubuntu 24.04, 모든 노드 Wi-Fi(192.168.50.0/24) |
+| 구성 | kubeadm, 7노드(control-plane 1 + worker 3 + CI 전용 worker-node-04·05·06, 아래 "CI 전용 노드"), Ubuntu 24.04, 모든 노드 Wi-Fi(192.168.50.0/24) |
 | Kubernetes | v1.36.0 |
 | 컨테이너 런타임 | containerd 2.4.2 |
 | CNI | Cilium 1.20.2 — kube-proxy 대체, VXLAN, LB IPAM + L2 announcement, Local Redirect Policy |
@@ -74,7 +74,7 @@ CNI나 Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 �
 | mesh-demo | system | mesh-demo | 이 레포 path @ main | Istio samples bookinfo 1.30.3 (이미지 1.20.3), curl 8.11.1 | `manifests/mesh-demo/` | M19 PoC 메시 데이터용 데모. istio-injection=enabled, PSA 라벨 없음, 외부 노출 없음. 사이드카 limit 256Mi(kustomize 패치). PM 요청 시 삭제 |
 | kube-state-metrics | system | kube-system | prometheus-community/kube-state-metrics 7.4.0 | v2.19.0 | `helm/kube-state-metrics/values.yaml` | ServiceMonitor 켬(2026-10-29). 수집 때 InfraLens가 쓰는 8개 지표만 keep(kube_node_info·kube_node_status_*·kube_pod_info·kube_pod_status_phase·kube_pod_container_resource_*) |
 | metric-server | o11y | kube-system | metrics-server/metrics-server 3.13.0 | v0.8.0 | `helm/metrics-server/values.yaml` | release 이름 `metric-server` |
-| kube-prometheus-stack | o11y | prometheus-operator | prometheus-community/kube-prometheus-stack 84.1.0 | operator v0.90.1, Prometheus v3.11.3 | `helm/prometheus-operator/values.yaml` | Prometheus 1개(보존 7일, local-path 10Gi, remoteWrite → Mimir 테넌트 home-k8s). Istio 수집: PodMonitor `envoy-stats`, ServiceMonitor `istiod`. node-exporter 켬(2026-10-29, 6노드 모두, 요청 50m·32Mi). Grafana·Alertmanager 끔 |
+| kube-prometheus-stack | o11y | prometheus-operator | prometheus-community/kube-prometheus-stack 84.1.0 | operator v0.90.1, Prometheus v3.11.3 | `helm/prometheus-operator/values.yaml` | Prometheus 1개(보존 7일, local-path 10Gi, remoteWrite → Mimir 테넌트 home-k8s). Istio 수집: PodMonitor `envoy-stats`, ServiceMonitor `istiod`. node-exporter 켬(2026-10-29, 모든 노드, 요청 50m·32Mi). Grafana·Alertmanager 끔 |
 | kiali-operator | o11y | kiali-operator | kiali/kiali-operator 2.33.0 (https://kiali.org/helm-charts) | Kiali v2.33.0 | `helm/kiali-operator/values.yaml` | 차트가 Kiali CR(`istio-system/kiali`)을 만들고 operator가 Kiali 서버를 istio-system에 띄움. `https://kiali.awx.kr`, 로그인 token(ServiceAccount 토큰), 쓰기 허용, Prometheus는 kube-prometheus-stack |
 | mimir | o11y | mimir | 이 레포 path @ main | grafana/mimir 3.2.3, nginx 1.29.2-alpine | `manifests/mimir/` | monolithic 1개(worker-node-02 고정, local-path 40Gi, 보존 30일), 멀티테넌시(테넌트 `home-k8s`), max_label_names_per_series 50. basic auth 프록시 `mimir-gateway`(Secret `mimir/mimir-basic-auth`는 레포 밖). `https://mimir.awx.kr`. InfraLens PoC가 읽음 |
 
@@ -307,8 +307,8 @@ Actions Runner Controller(러너 스케일 셋 모드)로 GitHub Actions self-ho
 |---|---|
 | 컨트롤러 | 앱 `arc-controller`, ns `arc-systems`, `watchSingleNamespace: arc-runners`(ClusterRole 없음). 리스너 Pod도 여기 뜹니다 |
 | 스케일 셋 | 앱 `arc-infralens`, ns `arc-runners`, 이름 **`arc-infralens`**(= 워크플로 `runs-on` 값), 저장소 단위 등록 |
-| 러너 | ephemeral(잡 하나 후 삭제), min 0 / max 13, linux/amd64. Pod당 requests 3.5 CPU·3.5Gi, 메모리 limit 7Gi(runner 2.5 CPU·3Gi / 6Gi(2026-10-29 4→6Gi, e2e OOM), dind 1 CPU·512Mi / 1Gi. dind는 2026-10-27 실사용 최대 491Mi 기준으로 줄임) |
-| 배치 | CI 전용 worker-node-04·05를 먼저 채우고(preferred nodeAffinity + taint toleration), 넘치면 라벨 `awx.kr/runner-overflow=<노드 이름>`이 붙은 일반 노드에 노드당 1개까지(required nodeAffinity + 그 라벨 기준 required podAntiAffinity). 지금 넘침 노드는 worker-node-02뿐입니다(01은 PoC DB와 같은 디스크, 03은 디스크 여유 부족이라 뺌). 수용은 node-04 4개(CPU 기준), node-05 8개(메모리 기준), node-02 1개 = 13개(2026-10-29 runner CPU 2→2.5로 node-04 5→4) |
+| 러너 | ephemeral(잡 하나 후 삭제), min 0 / max 15, linux/amd64. Pod당 requests 3.5 CPU·3.5Gi, 메모리 limit 7Gi(runner 2.5 CPU·3Gi / 6Gi(2026-10-29 4→6Gi, e2e OOM), dind 1 CPU·512Mi / 1Gi. dind는 2026-10-27 실사용 최대 491Mi 기준으로 줄임) |
+| 배치 | CI 전용 worker-node-04·05·06을 먼저 채우고(세 노드는 같은 순위)(preferred nodeAffinity + taint toleration), 넘치면 라벨 `awx.kr/runner-overflow=<노드 이름>`이 붙은 일반 노드에 노드당 1개까지(required nodeAffinity + 그 라벨 기준 required podAntiAffinity). 지금 넘침 노드는 worker-node-02뿐입니다(01은 PoC DB와 같은 디스크, 03은 디스크 여유 부족이라 뺌). 수용은 node-04 4개(CPU 기준), node-05 8개(메모리 기준), node-06 2개(CPU 기준), node-02 1개 = 15개(2026-10-29 runner CPU 2→2.5로 node-04 5→4, 2026-10-30 node-06 추가) |
 | 우선순위 | PriorityClass `ci-runner-low`(value -100, `preemptionPolicy: Never`, `manifests/arc-infralens/priorityclass.yaml`). 서비스 Pod(PriorityClass 없음 = 0)보다 낮아, 러너는 남을 밀지 않고 자리가 모자라면 서비스가 러너를 밀어냅니다(그 CI 잡은 실패). kubelet 메모리·디스크 축출도 러너가 먼저입니다 |
 | Go 캐시 | 노드 hostPath `/var/lib/ci-cache/go` → 러너 `/ci-cache/go`(`GOMODCACHE`·`GOCACHE`), `INFRALENS_CI_LOCAL_GO_CACHE=1`이면 워크플로가 setup-go 캐시를 끔. 잡 사이에 남음 |
 | Playwright 캐시 | 노드 hostPath `/var/lib/ci-cache/ms-playwright` → runner 컨테이너 `/ci-cache/ms-playwright`(`PLAYWRIGHT_BROWSERS_PATH`). 이미 받은 브라우저 버전은 `npx playwright install`이 건너뜀. 버전당 약 0.5~1GB, 자동 정리 없음. apt 캐시는 두지 않음(러너끼리 잠금 충돌) |
@@ -348,13 +348,14 @@ GitHub `jangjaelee/infralens` → Settings → Actions → Runners에 스케일 
 
 ### CI 전용 노드
 
-worker-node-04(16 CPU·22Gi, 디스크 전체 456G·2026-10-20 여유 411G)와 worker-node-05(192.168.50.116, 32 CPU·31Gi, nvme 439G, 2026-10-28 join)는 러너 전용입니다. Docker 캐시(ci-cache)는 node-04에만 있습니다. taint와 라벨은 Argo CD가 아니라 kubectl로 붙입니다(노드 객체는 레포로 관리하지 않습니다).
+worker-node-04(16 CPU·22Gi, 디스크 전체 456G·2026-10-20 여유 411G)와 worker-node-05(192.168.50.116, 32 CPU·31Gi, nvme 439G, 2026-10-28 join), worker-node-06(192.168.50.117, 8 CPU·13.5Gi(내장 그래픽이 2GB 사용), nvme 457G, 2026-10-30 join)은 러너 전용입니다. Docker 캐시(ci-cache)는 node-04에만 있습니다. taint와 라벨은 Argo CD가 아니라 kubectl로 붙입니다(노드 객체는 레포로 관리하지 않습니다).
 
 ```bash
 kubectl taint node worker-node-04 dedicated=ci:NoSchedule
 kubectl label node worker-node-04 node-role.kubernetes.io/ci=
-# worker-node-05는 join 때 JoinConfiguration nodeRegistration.taints로 taint를 넣고 라벨만 붙였다
+# worker-node-05·06은 join 때 JoinConfiguration nodeRegistration.taints로 taint를 넣고 라벨만 붙였다
 kubectl label node worker-node-05 node-role.kubernetes.io/ci= node-role.kubernetes.io/worker=
+kubectl label node worker-node-06 node-role.kubernetes.io/ci= node-role.kubernetes.io/worker=
 # 넘침 노드(러너 노드당 1개). 값은 노드마다 달라야 한다. 넣기 전에 메모리 여유(allocatable − 서비스 requests·실사용) ≥ 5Gi,
 # 디스크 여유(kubelet 축출 기준을 뺀 값) ≥ 60Gi인지 본다. 서비스에 영향이 보이면 바로 뗀다(`awx.kr/runner-overflow-`)
 kubectl label node worker-node-02 awx.kr/runner-overflow=worker-node-02
@@ -369,7 +370,7 @@ kubectl label node worker-node-02 awx.kr/runner-overflow=worker-node-02
 되돌리기:
 
 1. 러너 배치·캐시: 이 설정을 넣은 PR을 revert합니다(Argo CD 자동 sync). 이후 러너는 일반 워커에만 뜨고 Actions 캐시를 다시 씁니다.
-2. 노드: `kubectl taint node worker-node-04 dedicated=ci:NoSchedule-` / `kubectl label node worker-node-04 node-role.kubernetes.io/ci-`. worker-node-05는 러너 잡이 끝난 뒤 `kubectl drain worker-node-05 --ignore-daemonsets --delete-emptydir-data` → `kubectl delete node worker-node-05` → 노드에서 `sudo kubeadm reset`. 넘침은 `kubectl label node worker-node-02 awx.kr/runner-overflow-`(떠 있는 러너는 잡이 끝나면 사라짐)
+2. 노드: `kubectl taint node worker-node-04 dedicated=ci:NoSchedule-` / `kubectl label node worker-node-04 node-role.kubernetes.io/ci-`. worker-node-05·06은 러너 잡이 끝난 뒤 `kubectl drain <노드> --ignore-daemonsets --delete-emptydir-data` → `kubectl delete node <노드>` → 노드에서 `sudo kubeadm reset`(06을 빼면 maxRunners를 13으로 되돌린다). 넘침은 `kubectl label node worker-node-02 awx.kr/runner-overflow-`(떠 있는 러너는 잡이 끝나면 사라짐)
 3. Docker 캐시: 위 PR revert와 함께 `kubectl -n argo-cd delete app ci-cache`(네임스페이스는 남으니 `kubectl delete ns ci-cache`).
 4. 캐시 디렉터리는 노드마다 `sudo rm -rf /var/lib/ci-cache`.
 
