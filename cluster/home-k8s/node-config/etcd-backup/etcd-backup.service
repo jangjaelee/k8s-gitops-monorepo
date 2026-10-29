@@ -1,0 +1,10 @@
+[Unit]
+Description=home-k8s etcd snapshot backup
+After=network-online.target containerd.service kubelet.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/etcd-backup.sh
+Nice=10
+IOSchedulingClass=idle
