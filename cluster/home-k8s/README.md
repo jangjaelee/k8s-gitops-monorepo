@@ -307,7 +307,7 @@ Actions Runner Controller(러너 스케일 셋 모드)로 GitHub Actions self-ho
 |---|---|
 | 컨트롤러 | 앱 `arc-controller`, ns `arc-systems`, `watchSingleNamespace: arc-runners`(ClusterRole 없음). 리스너 Pod도 여기 뜹니다 |
 | 스케일 셋 | 앱 `arc-infralens`, ns `arc-runners`, 이름 **`arc-infralens`**(= 워크플로 `runs-on` 값), 저장소 단위 등록 |
-| 러너 | ephemeral(잡 하나 후 삭제), min 0 / max 13, linux/amd64. Pod당 requests 3.5 CPU·3.5Gi, 메모리 limit 5Gi(runner 2.5 CPU·3Gi / 4Gi, dind 1 CPU·512Mi / 1Gi. dind는 2026-10-27 실사용 최대 491Mi 기준으로 줄임) |
+| 러너 | ephemeral(잡 하나 후 삭제), min 0 / max 13, linux/amd64. Pod당 requests 3.5 CPU·3.5Gi, 메모리 limit 7Gi(runner 2.5 CPU·3Gi / 6Gi(2026-10-29 4→6Gi, e2e OOM), dind 1 CPU·512Mi / 1Gi. dind는 2026-10-27 실사용 최대 491Mi 기준으로 줄임) |
 | 배치 | CI 전용 worker-node-04·05를 먼저 채우고(preferred nodeAffinity + taint toleration), 넘치면 라벨 `awx.kr/runner-overflow=<노드 이름>`이 붙은 일반 노드에 노드당 1개까지(required nodeAffinity + 그 라벨 기준 required podAntiAffinity). 지금 넘침 노드는 worker-node-02뿐입니다(01은 PoC DB와 같은 디스크, 03은 디스크 여유 부족이라 뺌). 수용은 node-04 4개(CPU 기준), node-05 8개(메모리 기준), node-02 1개 = 13개(2026-10-29 runner CPU 2→2.5로 node-04 5→4) |
 | 우선순위 | PriorityClass `ci-runner-low`(value -100, `preemptionPolicy: Never`, `manifests/arc-infralens/priorityclass.yaml`). 서비스 Pod(PriorityClass 없음 = 0)보다 낮아, 러너는 남을 밀지 않고 자리가 모자라면 서비스가 러너를 밀어냅니다(그 CI 잡은 실패). kubelet 메모리·디스크 축출도 러너가 먼저입니다 |
 | Go 캐시 | 노드 hostPath `/var/lib/ci-cache/go` → 러너 `/ci-cache/go`(`GOMODCACHE`·`GOCACHE`), `INFRALENS_CI_LOCAL_GO_CACHE=1`이면 워크플로가 setup-go 캐시를 끔. 잡 사이에 남음 |
