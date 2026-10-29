@@ -9,9 +9,9 @@ runnerScaleSetName: arc-infralens
 minRunners: 0
 # 러너 Pod 하나가 requests 3.5 CPU·3.5Gi를 쓴다(runner 2.5 CPU·3Gi + dind 1 CPU·512Mi, 아래 template).
 # limits는 메모리 7Gi(runner 6Gi + dind 1Gi), 디스크 emptyDir 최대 60Gi(work 20Gi + dind-storage 40Gi).
-# 수용(2026-10-29): worker-node-04 4개(CPU 기준, 3.5×4=14 / 16), worker-node-05 8개(메모리 기준),
-# 넘침 노드 worker-node-02 1개 = 13개. 2026-10-29 runner CPU 2→2.5: 몰릴 때 node-04가 CPU 포화(PSI cpu avg10 71%, load 50)라 5→4개로 줄임. worker-node-01(PoC DB와 같은 디스크)·03(디스크 여유 부족)은 넘침에서 뺐다(아래 affinity).
-maxRunners: 13
+# 수용(2026-10-30): worker-node-04 4개(CPU 기준, 3.5×4=14 / 16), worker-node-05 8개(메모리 기준),
+# worker-node-06 2개(CPU 기준, 3.5×2=7 / 8, 2026-10-30 join), 넘침 노드 worker-node-02 1개 = 15개. 2026-10-29 runner CPU 2→2.5: 몰릴 때 node-04가 CPU 포화(PSI cpu avg10 71%, load 50)라 5→4개로 줄임. worker-node-01(PoC DB와 같은 디스크)·03(디스크 여유 부족)은 넘침에서 뺐다(아래 affinity).
+maxRunners: 15
 
 # Argo CD는 helm lookup을 못 하므로 컨트롤러 ServiceAccount를 직접 적는다(helm/arc-controller/values.yaml, release arc)
 controllerServiceAccount:
@@ -34,7 +34,7 @@ listenerTemplate:
 template:
   spec:
     automountServiceAccountToken: false   # 러너에 클러스터 API 자격 증명을 주지 않는다(SA도 권한 없는 gha-rs-no-permission)
-    # CI 전용 노드(worker-node-04·05, taint dedicated=ci:NoSchedule, 라벨 node-role.kubernetes.io/ci)를 먼저 채우고,
+    # CI 전용 노드(worker-node-04·05·06, taint dedicated=ci:NoSchedule, 라벨 node-role.kubernetes.io/ci)를 먼저 채우고,
     # 넘치면 라벨 awx.kr/runner-overflow=<노드 이름>이 붙은 일반 노드(지금 worker-node-02)에 노드당 1개까지만 띄운다.
     # taint·라벨은 kubectl로 붙인다(README "CI 전용 노드").
     # 서비스보다 낮은 우선순위(manifests/arc-infralens/priorityclass.yaml, preemptionPolicy Never): 러너는 남을 밀지 않고,

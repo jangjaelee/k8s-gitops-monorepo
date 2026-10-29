@@ -18,7 +18,7 @@
 | `.claude/agents/` | PR 리뷰·머지 에이전트 |
 
 현재 클러스터(이름 = kubectl context)
-- `home-k8s`: 집 홈랩, kubeadm 6노드, Cilium 1.20.2, Argo CD v3.5.5
+- `home-k8s`: 집 홈랩, kubeadm 7노드, Cilium 1.20.2, Argo CD v3.5.5
 - `rancher-desktop`: 로컬 Mac의 Rancher Desktop, k3s 단일 노드(arm64), Flannel·ServiceLB, Argo CD v3.5.5
 
 - `cluster/<cluster>/` 안의 파일 주석에 적는 경로(`helm/...`, `manifests/...`, `argocd/applications/...`)는 그 클러스터 폴더 기준이다.
