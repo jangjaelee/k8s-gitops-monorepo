@@ -73,7 +73,7 @@ Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 직접 �
 | kyverno | system | kyverno | kyverno/kyverno 3.9.1 | v1.19.1 | `helm/kyverno/values.yaml` | 엔진, `ServerSideDiff=true` |
 | kyverno-policies | system | kyverno | kyverno/kyverno-policies 3.9.1 + 이 레포 path | v1.19.1 | `helm/kyverno-policies/values.yaml`, `manifests/kyverno-policies/` | PSS restricted 17개 + 모범 사례 2개, **모두 Audit**, `ServerSideDiff=true` |
 | infralens-dex | default | infralens-test | 이 레포 path @ main | Dex v2.45.1 | `manifests/infralens-dex/` | InfraLens 로그인 IdP, issuer `https://infralens.awx.kr/dex`, memory storage |
-| infralens-poc | default | infralens | github.com/jangjaelee/infralens(비공개) `deploy/helm/infralens` @ 32187d5 | sha-32187d5 (ghcr.io/jangjaelee) | `helm/infralens-poc/values.yaml` | InfraLens PoC, 배포 키 필요, AI 채팅은 사용자 키(BYOK)만(아래 "InfraLens PoC" 절). Istio 사이드카: app·web·kube-gateway(자원 20m·64Mi / 500m·256Mi), kube.traffic·kube.history 켬(2026-10-29) |
+| infralens-poc | default | infralens | github.com/jangjaelee/infralens(비공개) `deploy/helm/infralens` @ 5509b41 | sha-5509b41 (ghcr.io/jangjaelee) | `helm/infralens-poc/values.yaml` | InfraLens PoC, 배포 키 필요, AI 채팅은 사용자 키(BYOK)만(아래 "InfraLens PoC" 절). Istio 사이드카: app·web·kube-gateway(자원 20m·64Mi / 500m·256Mi), kube.traffic·kube.history 켬(2026-10-29) |
 | kube-state-metrics | system | kube-system | prometheus-community/kube-state-metrics 7.4.0 | v2.19.0 | 기본값 | |
 | kube-prometheus-stack | o11y | prometheus-operator | prometheus-community/kube-prometheus-stack 84.1.0 | operator v0.90.1 | `helm/prometheus-operator/values.yaml` | Prometheus 1개(2026-10-29 켬, InfraLens Istio 화면용, 보존 3일, local-path 5Gi, 메모리 limit 1536Mi). Istio 수집: PodMonitor `envoy-stats`, ServiceMonitor `istiod`. node-exporter·Grafana·Alertmanager 끔 |
 
