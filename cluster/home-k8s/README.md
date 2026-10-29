@@ -157,6 +157,7 @@ Client ──► 192.168.50.200 (Cilium LB IPAM, L2 ARP)
    kubectl apply -f $A/mimir.yaml   # 먼저 Secret mimir/mimir-basic-auth(htpasswd) 생성
    ```
 4. 노드 설정: `$C/node-config/wifi-promisc/install.sh <SSH 호스트...>`
+5. etcd 백업: `$C/node-config/etcd-backup/install.sh`(master·worker-node-02), 맥은 `$C/node-config/etcd-backup/mac/install-mac.sh`
 
 ## 앱을 Gateway에 붙이기
 
