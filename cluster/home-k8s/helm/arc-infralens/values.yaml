@@ -8,7 +8,7 @@ runnerScaleSetName: arc-infralens
 
 minRunners: 0
 # 러너 Pod 하나가 requests 3.5 CPU·3.5Gi를 쓴다(runner 2.5 CPU·3Gi + dind 1 CPU·512Mi, 아래 template).
-# limits는 메모리 5Gi(runner 4Gi + dind 1Gi), 디스크 emptyDir 최대 60Gi(work 20Gi + dind-storage 40Gi).
+# limits는 메모리 7Gi(runner 6Gi + dind 1Gi), 디스크 emptyDir 최대 60Gi(work 20Gi + dind-storage 40Gi).
 # 수용(2026-10-29): worker-node-04 4개(CPU 기준, 3.5×4=14 / 16), worker-node-05 8개(메모리 기준),
 # 넘침 노드 worker-node-02 1개 = 13개. 2026-10-29 runner CPU 2→2.5: 몰릴 때 node-04가 CPU 포화(PSI cpu avg10 71%, load 50)라 5→4개로 줄임. worker-node-01(PoC DB와 같은 디스크)·03(디스크 여유 부족)은 넘침에서 뺐다(아래 affinity).
 maxRunners: 13
@@ -168,7 +168,7 @@ template:
             cpu: "2.5"          # 빌드·테스트가 여기서 돈다(실사용 최대 5.5코어). 2026-10-21 1→2, 2026-10-29 2→2.5(node-04 러너 5→4)
             memory: 3Gi         # 2026-10-28 2Gi→3Gi(노드에 자리를 더 잡아 둔다, 상한은 그대로)
           limits:
-            memory: 4Gi
+            memory: 6Gi         # 2026-10-29 4Gi→6Gi: web e2e(Playwright chrome-headless)가 node-05에서 4Gi에 걸려 OOMKilled(03:16·13:05·13:08). 요청은 그대로라 배치 불변
         volumeMounts:
           - name: work
             mountPath: /home/runner/_work
