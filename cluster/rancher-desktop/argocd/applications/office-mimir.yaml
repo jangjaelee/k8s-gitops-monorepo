@@ -1,0 +1,21 @@
+# 오피스 시험용(~10-31): InfraLens가 맥북 port-forward로 외부 Mimir를 읽는 Service. 끝나면 이 앱과 manifests/office-mimir/를 지운다.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: office-mimir
+  namespace: argo-cd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: infralens
+  source:
+    repoURL: https://github.com/jangjaelee/k8s-gitops-monorepo.git
+    targetRevision: main
+    path: cluster/rancher-desktop/manifests/office-mimir
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true

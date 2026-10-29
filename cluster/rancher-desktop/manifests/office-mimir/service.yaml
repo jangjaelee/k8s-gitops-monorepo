@@ -1,0 +1,30 @@
+# 오피스 InfraLens가 맥북의 port-forward(127.0.0.1:19080)로 외부 Mimir를 읽기 위한 Service.
+# Rancher Desktop VM에서 192.168.5.2는 맥북 loopback으로 이어진다. 오피스 시험 기간(~10-31) 동안만 쓰고 지운다.
+apiVersion: v1
+kind: Service
+metadata:
+  name: office-mimir
+  namespace: infralens
+spec:
+  ports:
+    - name: http
+      port: 19080
+      targetPort: 19080
+      protocol: TCP
+  # selector 없음: 아래 EndpointSlice가 주소를 정한다
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: office-mimir-host
+  namespace: infralens
+  labels:
+    kubernetes.io/service-name: office-mimir       # 이 Service의 주소 목록으로 쓰이게 함
+    endpointslice.kubernetes.io/managed-by: gitops  # 컨트롤러가 덮어쓰지 않게
+addressType: IPv4
+ports:
+  - name: http
+    port: 19080
+    protocol: TCP
+endpoints:
+  - addresses: ["192.168.5.2"]
