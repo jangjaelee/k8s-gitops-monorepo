@@ -1,4 +1,4 @@
-# chart: jangjaelee/infralens(비공개) deploy/helm/infralens 0.3.0 @ 192a800  (Argo CD app: argocd/applications/infralens-poc.yaml)
+# chart: jangjaelee/infralens(비공개) deploy/helm/infralens 0.3.0 @ 157f41c  (Argo CD app: argocd/applications/infralens-poc.yaml)
 # InfraLens PoC 설치. 릴리스된 제품을 GitOps로 설치하는 상황을 가정한다. 값은 Helm 릴리스 rev 9와 같다(image.tag 제외).
 # 비밀값은 없다. existingSecret은 Secret 이름만 가리키고, Secret은 InfraLens 쪽이 infralens ns에 만든다.
 # image.tag는 여기 두지 않는다: 릴리스 차트는 appVersion을 쓰고, 커밋으로 올릴 때는 Application의 helm.parameters에 둔다.
