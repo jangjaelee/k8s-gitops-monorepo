@@ -116,3 +116,8 @@ llm:
     userDaily: 30                 # 차트 기본 200
   eval:
     enabled: false                # 주간 평가 CronJob을 두지 않는다. 필요할 때 사용자 승인 뒤 수동으로 돌린다
+
+# (M23 O5 실측, PM 승인 10-31) 리소스 상세 "누가 바꿨나". 켜도 운영 설정 audit.changeActors.enabled와 대상 스위치를 켜야 읽음
+cloudAudit:
+  changeActors:
+    enabled: true
