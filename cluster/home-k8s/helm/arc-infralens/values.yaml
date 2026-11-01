@@ -61,6 +61,19 @@ template:
               matchExpressions:
                 - key: node-role.kubernetes.io/ci
                   operator: Exists
+          # 2026-11-01 코어가 많은 노드부터 채운다(worker-node-05 > 04 > 06). 포화(11-01 node-05 CPU 최고 97%)가 늘면 되돌린다
+          - weight: 60
+            preference:
+              matchExpressions:
+                - key: kubernetes.io/hostname
+                  operator: In
+                  values: [worker-node-05]
+          - weight: 30
+            preference:
+              matchExpressions:
+                - key: kubernetes.io/hostname
+                  operator: In
+                  values: [worker-node-04]
       # 넘침 노드에서는 러너끼리 같은 노드에 뜨지 않는다. 노드마다 라벨 값이 달라 노드당 1개가 되고,
       # 이 라벨이 없는 CI 노드는 이 제한을 받지 않는다(2026-10-2x lab에서 확인)
       podAntiAffinity:
