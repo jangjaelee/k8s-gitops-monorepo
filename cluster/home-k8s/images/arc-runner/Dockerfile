@@ -5,7 +5,7 @@
 #
 # ARC 러너는 자동 업데이트 없이 잡 하나만 돌고 지워진다(ephemeral). 새 러너 릴리스가 나오면
 # 30일 안에 FROM을 올려야 GitHub이 잡을 계속 보낸다(Dependabot이 PR을 연다, .github/dependabot.yml).
-FROM ghcr.io/actions/actions-runner:2.338.1@sha256:e275409999c37162649aa050ca573f03eab2eabcb3a1e7fcc47548de6b4f9690
+FROM ghcr.io/actions/actions-runner:2.338.2@sha256:759a1d94a15b05941aba5196974ff43fe15b4cbba29b694b35cbc32a1166b232
 
 # 체크섬: get.helm.sh/helm-v<버전>-linux-amd64.tar.gz.sha256sum, github.com/mikefarah/yq 릴리스 checksums-bsd
 ARG HELM_VERSION=4.3.1
