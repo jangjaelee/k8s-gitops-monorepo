@@ -1,0 +1,17 @@
+# versitygw 서버 인증서. 앱은 homelab-ca만 믿는다. versitygw는 인증서를 시작 때 읽는 것으로 보여 갱신 뒤 Pod 재시작이 필요하다(미확인)
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: vgw-tls
+  namespace: infralens-vgw
+spec:
+  secretName: vgw-tls
+  duration: 8760h
+  renewBefore: 720h
+  dnsNames:
+    - vgw.infralens-vgw.svc
+    - vgw.infralens-vgw.svc.cluster.local
+    - localhost                   # port-forward로 버킷을 만들 때
+  issuerRef:
+    kind: ClusterIssuer
+    name: homelab-ca

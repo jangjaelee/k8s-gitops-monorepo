@@ -1,0 +1,5 @@
+# InfraLens PoC 증적·셸 녹화 저장소(versitygw). 2026-11-01 사용자 승인: 20Gi, Valkey TLS 켬, 보관 30일
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: infralens-vgw
