@@ -28,12 +28,13 @@ spec:
             value: "true"
             forceString: true
           # 사이드카 자원: 메모리 limit만 Istio 기본 1Gi → 256Mi(실사용 약 45~57Mi, 2026-10-27 PM 결정).
+          # 2026-11-03: request를 CPU 100m→20m, 메모리 128Mi→96Mi(3일 최대 CPU 12m·메모리 77Mi). limit은 그대로
           # proxyMemoryLimit만 주면 Istio가 CPU request·limit을 빼고 memory request도 256Mi로 올리므로 나머지 기본값을 같이 적는다
           - name: app.podAnnotations.sidecar\.istio\.io/proxyCPU
-            value: "100m"
+            value: "20m"
             forceString: true
           - name: app.podAnnotations.sidecar\.istio\.io/proxyMemory
-            value: "128Mi"
+            value: "96Mi"
             forceString: true
           - name: app.podAnnotations.sidecar\.istio\.io/proxyCPULimit
             value: "2"
@@ -42,10 +43,10 @@ spec:
             value: "256Mi"
             forceString: true
           - name: web.podAnnotations.sidecar\.istio\.io/proxyCPU
-            value: "100m"
+            value: "20m"
             forceString: true
           - name: web.podAnnotations.sidecar\.istio\.io/proxyMemory
-            value: "128Mi"
+            value: "96Mi"
             forceString: true
           - name: web.podAnnotations.sidecar\.istio\.io/proxyCPULimit
             value: "2"
@@ -54,10 +55,10 @@ spec:
             value: "256Mi"
             forceString: true
           - name: kube.gateway.podAnnotations.sidecar\.istio\.io/proxyCPU
-            value: "100m"
+            value: "20m"
             forceString: true
           - name: kube.gateway.podAnnotations.sidecar\.istio\.io/proxyMemory
-            value: "128Mi"
+            value: "96Mi"
             forceString: true
           - name: kube.gateway.podAnnotations.sidecar\.istio\.io/proxyCPULimit
             value: "2"

@@ -18,7 +18,7 @@ patches:
         template:
           metadata:
             annotations:
-              sidecar.istio.io/proxyCPU: "100m"
-              sidecar.istio.io/proxyMemory: "128Mi"
+              sidecar.istio.io/proxyCPU: "20m"   # 2026-11-03 100m→20m, 메모리 128Mi→96Mi(3일 최대 CPU 8m·메모리 59Mi)
+              sidecar.istio.io/proxyMemory: "96Mi"
               sidecar.istio.io/proxyCPULimit: "2"
               sidecar.istio.io/proxyMemoryLimit: "256Mi"
