@@ -1730,12 +1730,13 @@ prometheus:
 
     ## Resource limits & requests
     ##
+    # 2026-11-03: 사용 1.49GB로 limit 1536Mi의 93%(재시작 1회) → request 1536Mi, limit 2560Mi(노드 worker-node-03 32Gi, 예약 20%)
     resources:
       requests:
         cpu: 100m
-        memory: 512Mi
-      limits:
         memory: 1536Mi
+      limits:
+        memory: 2560Mi
     # requests:
     #   memory: 400Mi
 
