@@ -273,34 +273,7 @@ prometheus-windows-exporter:
       enabled: '[defaults],memory,container'
 
 alertmanager:
-  enabled: true
-  # 2026-11-05 PoC 최소 경보. Slack 웹훅은 Secret alertmanager-slack(키 webhook)에 사용자가 넣는다. 값은 레포에 넣지 않는다.
-  config:
-    global:
-      slack_api_url_file: /etc/alertmanager/secrets/alertmanager-slack/webhook
-    route:
-      receiver: "null"
-      group_by: [alertname, namespace]
-      group_wait: 30s
-      group_interval: 5m
-      repeat_interval: 4h
-      routes:
-        - matchers: ['infralens_alert="critical"']
-          receiver: slack
-    receivers:
-      - name: "null"
-      - name: slack
-        slack_configs:
-          - send_resolved: true
-            title: '{{ .Status }}: {{ .CommonLabels.alertname }}'
-            text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ "\n" }}{{ end }}'
-    templates: []
-  alertmanagerSpec:
-    replicas: 1
-    secrets: [alertmanager-slack]
-    resources:
-      requests: { cpu: 10m, memory: 64Mi }
-      limits: { memory: 128Mi }
+  enabled: false
 
 grafana:
   enabled: false
