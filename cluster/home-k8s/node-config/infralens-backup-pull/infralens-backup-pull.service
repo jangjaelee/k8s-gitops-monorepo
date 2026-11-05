@@ -1,0 +1,13 @@
+[Unit]
+Description=PoC DB 덤프를 worker-node-02에서 받아 옴
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=infralens-backup
+ExecStart=/usr/local/bin/infralens-backup-pull.sh
+ProtectSystem=strict
+ReadWritePaths=/var/lib/infralens-poc-backup
+NoNewPrivileges=true
+PrivateTmp=true

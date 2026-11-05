@@ -6,6 +6,7 @@
 |---|---|---|
 | `wifi-promisc/` | 모든 Wi-Fi 인터페이스(`wl*`)에 promiscuous 모드를 켜는 systemd 유닛 + NetworkManager dispatcher | `./wifi-promisc/install.sh <SSH 호스트...>` |
 | `etcd-backup/` | master-node-01 etcd 스냅샷·`/etc/kubernetes` 매일 03:10 백업(14일), worker-node-02·맥에 사본, 복원 절차 | `./etcd-backup/install.sh`, 맥은 `./etcd-backup/mac/install-mac.sh` |
+| `infralens-backup-pull/` | PoC DB 덤프를 lab 노드로 매일 복제(읽기 전용 rrsync) | `./infralens-backup-pull/README.md` |
 | `wifi-bssid-lock/` | iwlwifi 노드(master, worker-03)의 Wi-Fi를 한 AP에 고정해 주기 스캔을 멈춤(Cilium 장치 정보 손상 → LB 불통 방지) | `./wifi-bssid-lock/lock.sh <SSH 호스트> <BSSID>` |
 
 ## wifi-promisc가 필요한 이유

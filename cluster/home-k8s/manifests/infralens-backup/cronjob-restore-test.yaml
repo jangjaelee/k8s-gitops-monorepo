@@ -1,0 +1,55 @@
+# 매주 일요일 03:10 KST 복원 시험. 운영 DB 비밀번호를 받지 않는다.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: infralens-db-restore-test
+  namespace: infralens
+spec:
+  schedule: "10 3 * * 0"
+  timeZone: Asia/Seoul
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 1800
+      template:
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          nodeSelector:
+            kubernetes.io/hostname: worker-node-02
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 999
+            runAsGroup: 999
+            fsGroup: 999
+            seccompProfile: { type: RuntimeDefault }
+          containers:
+            - name: run
+              image: docker.io/library/postgres:17.11-bookworm
+              command: [sh, /scripts/restore-test.sh]
+              env:
+                - { name: TZ, value: Asia/Seoul }
+              resources:
+                requests: { cpu: 50m, memory: 128Mi }
+                limits: { memory: 1Gi }
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: [ALL] }
+              volumeMounts:
+                - { name: backup, mountPath: /backup, readOnly: true }
+                - { name: scripts, mountPath: /scripts, readOnly: true }
+                - { name: work, mountPath: /work }
+                - { name: run, mountPath: /var/run/postgresql }
+          volumes:
+            - name: backup
+              persistentVolumeClaim: { claimName: infralens-db-backup }
+            - name: scripts
+              configMap: { name: infralens-db-backup-scripts }
+            - name: work
+              emptyDir: {}
+            - name: run
+              emptyDir: {}
