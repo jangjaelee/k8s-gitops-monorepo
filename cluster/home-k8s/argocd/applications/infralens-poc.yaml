@@ -76,11 +76,41 @@ spec:
           # 차트 157f41c 이전 스키마에는 없는 키라 values 파일이 아니라 여기 둔다(머지 직후 옛 차트로 sync되며 스키마 오류 방지)
           - name: mcp.enabled
             value: "true"
-          # (ADR-0027) Pod 셸만, 녹화 끔(recording 기본 false). 네임스페이스는 mesh-demo 하나. 2026-11-01 사용자 승인. clusterWide는 켜지 않는다
+          # (ADR-0027·0030) Pod 셸, 녹화 끔. 2026-11-06 사용자 승인으로 clusterWide 켬(VAP가 차트 고정 목록·설치 ns를 막음).
+          # 고정 목록 밖의 민감 ns(DB·증적·모니터링·CI 러너 등)는 blockedNamespaces로 더 막는다
           - name: kube.exec.enabled
             value: "true"
-          - name: kube.exec.namespaces[0]
-            value: mesh-demo
+          - name: kube.exec.clusterWide
+            value: "true"
+          - name: kube.exec.blockedNamespaces[0]
+            value: arc-runners
+          - name: kube.exec.blockedNamespaces[1]
+            value: arc-systems
+          - name: kube.exec.blockedNamespaces[2]
+            value: infralens-test
+          - name: kube.exec.blockedNamespaces[3]
+            value: infralens-test-db
+          - name: kube.exec.blockedNamespaces[4]
+            value: infralens-vgw
+          - name: kube.exec.blockedNamespaces[5]
+            value: mimir
+          - name: kube.exec.blockedNamespaces[6]
+            value: prometheus
+          - name: kube.exec.blockedNamespaces[7]
+            value: prometheus-operator
+          - name: kube.exec.blockedNamespaces[8]
+            value: argo-rollouts
+          - name: kube.exec.blockedNamespaces[9]
+            value: kiali-operator
+          - name: kube.exec.blockedNamespaces[10]
+            value: ci-cache
+          - name: kube.exec.blockedNamespaces[11]
+            value: cilium-secrets
+          - name: kube.exec.blockedNamespaces[12]
+            value: local-path-storage
+          # (D872) 차트 NetworkPolicy 기본 켬은 Istio 사이드카(istiod 15012 등) egress가 없어 끔. kubelet 차단(blockKubeletEgress)은 기본 켬 유지
+          - name: networkPolicy.enabled
+            value: "false"
           # (ADR-0033) 사용자 정의 리소스·Secret 목록 읽기. 클러스터 전체 Secret 읽기 신원이 생긴다. 2026-11-02 사용자 승인
           - name: kube.customResources.readAll
             value: "true"
