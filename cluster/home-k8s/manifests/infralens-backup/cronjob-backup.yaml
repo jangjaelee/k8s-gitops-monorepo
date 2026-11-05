@@ -31,6 +31,8 @@ spec:
               image: docker.io/library/postgres:17.11-bookworm
               command: [sh, /scripts/backup.sh]
               env:
+                - name: TZ                     # 요일(일요일 주간 사본)·파일 이름을 KST로
+                  value: Asia/Seoul
                 - name: PGPASSWORD
                   valueFrom:
                     secretKeyRef: { name: infralens-pg-admin, key: password }

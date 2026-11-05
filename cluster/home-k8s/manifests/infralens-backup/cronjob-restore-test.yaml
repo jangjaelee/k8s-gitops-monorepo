@@ -30,6 +30,8 @@ spec:
             - name: run
               image: docker.io/library/postgres:17.11-bookworm
               command: [sh, /scripts/restore-test.sh]
+              env:
+                - { name: TZ, value: Asia/Seoul }
               resources:
                 requests: { cpu: 50m, memory: 128Mi }
                 limits: { memory: 1Gi }

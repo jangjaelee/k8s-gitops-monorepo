@@ -11,6 +11,8 @@ data:
     umask 027
     D=/backup/daily; W=/backup/weekly; mkdir -p "$D" "$W"
     T=$(date +%Y%m%d-%H%M%S); TMP="$D/.tmp-$T"; F="$D/infralens-$T.dump"
+    trap 'rm -f "$TMP"' EXIT
+    rm -f "$D"/.tmp-*
     pg_dump -h infralens-pg -U postgres -d infralens --format=custom -f "$TMP"
     n=$(pg_restore --list "$TMP" | grep -vc '^;')
     [ "$n" -gt 0 ]
