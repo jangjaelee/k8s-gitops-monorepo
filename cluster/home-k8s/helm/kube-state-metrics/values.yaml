@@ -3,6 +3,7 @@
 # KSM 출력은 그대로 두고, 수집할 때 InfraLens가 쓰는 지표만 남긴다(시계열 증가 억제). 지표가 더 필요하면 아래 regex에 더한다.
 # 2026-11-03: 워크로드 사용량 추이용 10개 추가(소유 관계·재시작·replica 수, 약 +555 시계열). honorLabels로 KSM의 namespace 라벨을 그대로 쓴다
 #   (없으면 namespace가 스크레이프 대상 kube-system으로 덮이고 실제 값은 exported_namespace로 감)
+# 2026-11-05: PoC 백업·수집 경보용 2개 추가(cronjob_status_last_successful_time, job_status_failed).
 prometheus:
   monitor:
     enabled: true
@@ -10,4 +11,4 @@ prometheus:
     metricRelabelings:
       - sourceLabels: [__name__]
         action: keep
-        regex: kube_(pod_info|pod_status_phase|pod_container_resource_requests|pod_container_resource_limits|node_info|node_status_allocatable|node_status_capacity|node_status_condition|pod_owner|replicaset_owner|pod_container_status_restarts_total|pod_container_status_last_terminated_reason|deployment_spec_replicas|deployment_status_replicas_available|statefulset_replicas|statefulset_status_replicas_ready|daemonset_status_desired_number_scheduled|daemonset_status_number_ready)
+        regex: kube_(pod_info|pod_status_phase|pod_container_resource_requests|pod_container_resource_limits|node_info|node_status_allocatable|node_status_capacity|node_status_condition|pod_owner|replicaset_owner|pod_container_status_restarts_total|pod_container_status_last_terminated_reason|deployment_spec_replicas|deployment_status_replicas_available|statefulset_replicas|statefulset_status_replicas_ready|daemonset_status_desired_number_scheduled|daemonset_status_number_ready|cronjob_status_last_successful_time|job_status_failed)

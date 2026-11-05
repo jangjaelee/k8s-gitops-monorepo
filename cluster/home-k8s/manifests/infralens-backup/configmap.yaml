@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: infralens-db-backup-scripts
+  namespace: infralens
+data:
+  backup.sh: |
+    #!/bin/sh
+    # 덤프 → 읽기 검증 → 이름 확정 → 보관 일 7개·주 4개. 그룹 읽기는 lab 복제 계정용(gid 999), 그 밖은 권한 없음.
+    set -eu
+    umask 027
+    D=/backup/daily; W=/backup/weekly; mkdir -p "$D" "$W"
+    T=$(date +%Y%m%d-%H%M%S); TMP="$D/.tmp-$T"; F="$D/infralens-$T.dump"
+    pg_dump -h infralens-pg -U postgres -d infralens --format=custom -f "$TMP"
+    n=$(pg_restore --list "$TMP" | grep -vc '^;')
+    [ "$n" -gt 0 ]
+    mv "$TMP" "$F"
+    echo "백업 $F $(stat -c %s "$F")바이트 항목 $n sha256 $(sha256sum "$F" | cut -c1-12)"
+    [ "$(date +%u)" = 7 ] && cp "$F" "$W/"
+    ls -1t "$D"/infralens-*.dump | tail -n +8 | xargs -r rm -f
+    ls -1t "$W"/infralens-*.dump 2>/dev/null | tail -n +5 | xargs -r rm -f
+  restore-test.sh: |
+    #!/bin/sh
+    # 최신 덤프를 임시 PG(emptyDir)에 복원해 확인한다. 운영 DB에는 접속하지 않는다. 복원 오류가 하나라도 있으면 실패.
+    set -eu
+    S=$(date +%s)
+    F=$(ls -1t /backup/daily/infralens-*.dump | head -1); echo "대상 $F"
+    export PGDATA=/work/data PGHOST=/work/run PGUSER=postgres
+    mkdir -p "$PGHOST"
+    initdb -U postgres --auth=trust >/dev/null
+    pg_ctl -w -o "-c listen_addresses='' -c unix_socket_directories=$PGHOST" start >/dev/null
+    trap 'pg_ctl -m fast stop >/dev/null || true' EXIT
+    createdb infralens
+    pg_restore -d infralens --no-owner --no-privileges "$F" 2> /work/restore.err || true
+    e=$(grep -c '^pg_restore: error' /work/restore.err || true)
+    q() { psql -d infralens -Atc "$1"; }
+    g=$(q "select max(version_id) from infralens_meta.goose_db_version")
+    t=$(q "select count(*) from information_schema.tables where table_schema='app'")
+    m=$(q "select count(*) from app.member")
+    echo "복원 오류 $e, goose $g, app 표 $t, 구성원 $m, 소요 $(( $(date +%s) - S ))초"
+    grep '^pg_restore: error' /work/restore.err | cut -c1-200 | head -20 || true
+    [ "$e" = 0 ] && [ "$g" -gt 0 ] && [ "$t" -gt 0 ] && [ "$m" -gt 0 ]

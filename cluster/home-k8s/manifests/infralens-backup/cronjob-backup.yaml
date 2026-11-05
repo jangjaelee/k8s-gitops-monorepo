@@ -1,0 +1,57 @@
+# 매일 02:10 KST(:00·:15·:30·:45 수집과 겹치지 않음). 밖 복제는 lab 노드가 02:40에 받아 간다(node-config/infralens-backup-pull).
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: infralens-db-backup
+  namespace: infralens
+spec:
+  schedule: "10 2 * * *"
+  timeZone: Asia/Seoul
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 1800
+      template:
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          nodeSelector:
+            kubernetes.io/hostname: worker-node-02
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 999
+            runAsGroup: 999
+            fsGroup: 999
+            seccompProfile: { type: RuntimeDefault }
+          containers:
+            - name: run
+              image: docker.io/library/postgres:17.11-bookworm
+              command: [sh, /scripts/backup.sh]
+              env:
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef: { name: infralens-pg-admin, key: password }
+              resources:
+                requests: { cpu: 50m, memory: 128Mi }
+                limits: { memory: 1Gi }
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: [ALL] }
+              volumeMounts:
+                - { name: backup, mountPath: /backup }
+                - { name: scripts, mountPath: /scripts, readOnly: true }
+                - { name: work, mountPath: /work }
+                - { name: run, mountPath: /var/run/postgresql }
+          volumes:
+            - name: backup
+              persistentVolumeClaim: { claimName: infralens-db-backup }
+            - name: scripts
+              configMap: { name: infralens-db-backup-scripts }
+            - name: work
+              emptyDir: {}
+            - name: run
+              emptyDir: {}
