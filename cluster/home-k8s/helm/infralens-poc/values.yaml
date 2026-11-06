@@ -89,3 +89,13 @@ llm:
     userDaily: 30                 # 차트 기본 200
   eval:
     enabled: false                # 주간 평가 CronJob을 두지 않는다. 필요할 때 사용자 승인 뒤 수동으로 돌린다
+
+# (M42 ③, 2026-11-06 PM 승인) 지표 수집과 침해 신호 경보. kube-prometheus-stack은 release 라벨로 고른다.
+# 수신은 기존 Alertmanager 경로(Slack Secret 보류 중이라 화면에만 보일 수 있음). 되돌리기: 둘 다 false
+metrics:
+  serviceMonitor:
+    enabled: true
+    labels: { release: kube-prometheus-stack }
+  prometheusRule:
+    enabled: true
+    labels: { release: kube-prometheus-stack }
