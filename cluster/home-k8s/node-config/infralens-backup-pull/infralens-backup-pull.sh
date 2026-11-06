@@ -3,7 +3,7 @@
 set -eu
 . /etc/infralens-backup-pull.conf   # SRC=<사용자>@192.168.50.112  키는 ~/.ssh/id_ed25519
 D=/var/lib/infralens-poc-backup
-rsync -a -e "ssh -o BatchMode=yes" "$SRC:" "$D/"
+rsync -a -e "ssh -o BatchMode=yes -o UpdateHostKeys=no" "$SRC:" "$D/"
 new=$(find "$D" -name 'infralens-*.dump' -mtime -2 | wc -l)
 [ "$new" -gt 0 ] || { echo "최근 덤프 없음, 정리 안 함"; exit 1; }
 find "$D/daily" -name 'infralens-*.dump' -mtime +8 -delete
