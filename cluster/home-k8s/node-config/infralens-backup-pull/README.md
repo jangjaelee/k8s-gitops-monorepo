@@ -6,7 +6,7 @@ PoC DB 덤프의 클러스터 밖 사본. lab 노드(192.168.50.115)가 worker-n
 
 ## worker-node-02
 
-1. 사용자 `infralens-backup`을 로그인 셸 없이 만들고 그룹 999에 넣는다(덤프 파일 그룹 읽기).
+1. 사용자 `infralens-backup`을 만들고 비밀번호를 잠근다. 덤프 폴더에 ACL로 읽기만 준다(`setfacl -R -m u:infralens-backup:rX`, daily·weekly에 기본 ACL). gid 999는 노드에서 systemd-journal이라 그룹에 넣지 않는다.
 2. `authorized_keys`에 lab의 공개 키를 한 줄로 넣는다. 읽기 전용, 덤프 폴더 하나만:
    `command="rrsync -ro <infralens-db-backup PVC의 local-path 경로>",restrict ssh-ed25519 ...`
 
