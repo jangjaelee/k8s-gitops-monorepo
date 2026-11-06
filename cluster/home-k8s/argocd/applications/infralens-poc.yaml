@@ -108,9 +108,9 @@ spec:
             value: cilium-secrets
           - name: kube.exec.blockedNamespaces[12]
             value: local-path-storage
-          # (D872) 차트 NetworkPolicy 기본 켬은 Istio 사이드카(istiod 15012 등) egress가 없어 끔. kubelet 차단(blockKubeletEgress)은 기본 켬 유지
+          # (M42, 11-06) 차트 NetworkPolicy 켬. Istio 허용(networkPolicy.istio)·Prometheus 9090은 values. 되돌리기: "false"
           - name: networkPolicy.enabled
-            value: "false"
+            value: "true"
           # (ADR-0033) 사용자 정의 리소스·Secret 목록 읽기. 클러스터 전체 Secret 읽기 신원이 생긴다. 2026-11-02 사용자 승인
           - name: kube.customResources.readAll
             value: "true"

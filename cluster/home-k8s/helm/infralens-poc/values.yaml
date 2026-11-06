@@ -1,4 +1,4 @@
-# chart: jangjaelee/infralens(비공개) deploy/helm/infralens 0.3.0 @ 0c529ff  (Argo CD app: argocd/applications/infralens-poc.yaml)
+# chart: jangjaelee/infralens(비공개) deploy/helm/infralens 0.3.0 @ 1b05fe2  (Argo CD app: argocd/applications/infralens-poc.yaml)
 # InfraLens PoC 설치. 릴리스된 제품을 GitOps로 설치하는 상황을 가정한다. 값은 Helm 릴리스 rev 9와 같다(image.tag 제외).
 # 비밀값은 없다. existingSecret은 Secret 이름만 가리키고, Secret은 InfraLens 쪽이 infralens ns에 만든다.
 # image.tag는 여기 두지 않는다: 릴리스 차트는 appVersion을 쓰고, 커밋으로 올릴 때는 Application의 helm.parameters에 둔다.
@@ -99,3 +99,14 @@ metrics:
   prometheusRule:
     enabled: true
     labels: { release: kube-prometheus-stack }
+
+# (M42, 2026-11-06 PL 위임 결정) 차트 NetworkPolicy. 켜기·끄기는 Application parameters의 networkPolicy.enabled.
+# lab2 실측(사이드카 주입 + istio)으로 확인. 되돌리기: parameters networkPolicy.enabled "false"
+networkPolicy:
+  istio:
+    enabled: true           # app·web·kube-gateway에 Istio 사이드카(istiod 15012, 15020·15021)
+  trafficSources:
+    prometheus:             # in-cluster 대상 prometheus_url(kube-prometheus-stack, 9090)
+      to:
+        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: prometheus-operator } }
+      ports: [9090]
