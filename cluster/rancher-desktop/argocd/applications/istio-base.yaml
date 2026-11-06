@@ -6,7 +6,7 @@ metadata:
 spec:
   project: system
   sources:
-    - repoURL: https://istio-release.storage.googleapis.com/charts
+    - repoURL: https://blob.istio.io/istio-release/charts   # 1.31부터 GCP 저장소 폐지(차단 시험 11-17·12-08), https://istio.io/latest/blog/2026/retirement-of-gcp/
       chart: base
       targetRevision: 1.30.3
       helm:

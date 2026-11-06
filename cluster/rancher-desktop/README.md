@@ -220,7 +220,9 @@ Mac `/etc/hosts`에도 그 호스트를 `127.0.0.1`로 넣습니다.
 | argo-rollouts 플러그인 받기 | `release-assets.githubusercontent.com` | `helm/argo-rollouts/values.yaml` `controller.volumes` |
 | InfraLens AWS 연결 확인·수집 | `sts.amazonaws.com`, `sts.us-east-1`, `ec2.us-east-1`, `rds.ap-northeast-2` 등(엔드포인트마다 다름) | Kyverno `MutatingPolicy` `inject-custom-ca`(`manifests/kyverno-policies/custom-ca.yaml`) + 네임스페이스 라벨 |
 
-영향 없음: github.com, Istio 차트(GCS), Google 로그인, GCP API(`*.googleapis.com`), docker.io·ghcr.io, LLM API.
+영향 없음: github.com, Istio 차트 옛 주소(GCS), Google 로그인, GCP API(`*.googleapis.com`), docker.io·ghcr.io, LLM API.
+
+확인 필요(2026-11-06): Istio 차트 새 주소 `blob.istio.io` → `istio-release.r2.istio.io`(308 리디렉션). 1.31부터 GCS를 쓰지 않아 옮겼다. 사무실 프록시가 이 도메인을 바꿔치면 repo-server가 차트를 받지 못하므로, 반영 전에 Argo CD 앱 화면의 차트 받기 오류 여부를 본다. 바꿔치면 위 표에 추가한다.
 
 values는 ConfigMap `custom-ca-certs`(키 `custom-ca.crt`)를 `/etc/ssl/certs/custom-ca.crt`로 마운트합니다(`optional: true`, 없으면 기본 CA만). Go 프로그램은 `/etc/ssl/certs` 안 파일을 모두 읽어 신뢰합니다. **CA 인증서는 레포에 넣지 않고** 클러스터에만 만듭니다. 프록시 CA의 중간·루트 인증서를 Mac 시스템 키체인에서 꺼내 한 파일(PEM)로 합칩니다.
 
