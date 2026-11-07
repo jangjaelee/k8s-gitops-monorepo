@@ -1,0 +1,26 @@
+# Certificate 경보(cert-manager 지표). Prometheus ruleSelector release=kube-prometheus-stack
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: cert-manager-certificates
+  namespace: cert-manager
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: cert-manager
+      rules:
+        - alert: CertificateExpiringSoon
+          expr: (certmanager_certificate_expiration_timestamp_seconds - time()) < 21 * 86400
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.namespace }}/{{ $labels.name }} 인증서가 21일 안에 만료"
+        - alert: CertificateNotReady
+          expr: max by (namespace, name) (certmanager_certificate_ready_status{condition!="True"}) == 1
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.namespace }}/{{ $labels.name }} 인증서 Ready 아님(30분)"

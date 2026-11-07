@@ -1,0 +1,17 @@
+# staging 발급 시험용. 게이트웨이에 붙이지 않는다(staging 루트는 신뢰되지 않음). 시험 뒤 지워도 됨
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: infralens-le-staging-test
+  namespace: cert-manager
+spec:
+  secretName: infralens-le-staging-test
+  dnsNames:
+    - infralens.awx.kr
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: letsencrypt-staging
