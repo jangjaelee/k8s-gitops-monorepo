@@ -17,7 +17,7 @@
 | GitOps | Argo CD v3.5.5 (chart argo-cd 10.10.5, `https://argocd.awx.kr`, Google 로그인) |
 | Service mesh | Istio 1.30.3 sidecar 모드 + istio-cni, revision `1-30-3`(tag `default`) |
 | Ingress | Gateway API v1.5.1 (Istio 구현), Gateway `istio-system/istio-gateway` |
-| 인증서 | cert-manager v1.20.2 + 사설 CA(`ClusterIssuer/homelab-ca`), Let's Encrypt 발급자(`letsencrypt-prod`, DNS-01 acme-dns) 준비 |
+| 인증서 | cert-manager v1.20.2 + 사설 CA(`ClusterIssuer/homelab-ca`), `infralens.awx.kr`만 Let's Encrypt(`letsencrypt-prod`, DNS-01 acme-dns) |
 | 스토리지 | local-path-provisioner v0.0.37 (기본 StorageClass `local-path`, Retain) |
 
 ## 폴더 구성

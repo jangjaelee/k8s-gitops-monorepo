@@ -1,4 +1,4 @@
-# infralens.awx.kr 전용 인증서 (사설 CA homelab-ca). Gateway listener https-infralens가 사용
+# infralens.awx.kr 전용 인증서 (Let's Encrypt, DNS-01 acme-dns). 되돌리기: issuerRef를 homelab-ca로. Gateway listener https-infralens가 사용
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -9,8 +9,7 @@ spec:
   commonName: infralens.awx.kr
   dnsNames:
     - infralens.awx.kr
-  duration: 2160h           # 90일
-  renewBefore: 360h
+  renewBefore: 720h          # LE 90일 인증서를 30일 남기고 갱신(만료 21일 전 경보보다 먼저)
   privateKey:
     algorithm: ECDSA
     size: 256
@@ -18,4 +17,4 @@ spec:
   issuerRef:
     group: cert-manager.io
     kind: ClusterIssuer
-    name: homelab-ca
+    name: letsencrypt-prod
