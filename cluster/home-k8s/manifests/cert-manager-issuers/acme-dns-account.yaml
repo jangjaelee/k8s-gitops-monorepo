@@ -1,0 +1,19 @@
+# acme-dns(auth.acme-dns.io) 계정. 값은 Vault secret/cert-manager/acme-dns(키 acmedns_json)에만 있다. 레포에 값 없음
+# ClusterIssuer letsencrypt-*의 accountSecretRef가 읽는다(cluster resource namespace cert-manager)
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: acme-dns-account
+  namespace: cert-manager
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: vault
+  target:
+    name: acme-dns-account
+  data:
+    - secretKey: acmedns.json
+      remoteRef:
+        key: cert-manager/acme-dns
+        property: acmedns_json

@@ -17,7 +17,7 @@
 | GitOps | Argo CD v3.5.5 (chart argo-cd 10.10.5, `https://argocd.awx.kr`, Google 로그인) |
 | Service mesh | Istio 1.30.3 sidecar 모드 + istio-cni, revision `1-30-3`(tag `default`) |
 | Ingress | Gateway API v1.5.1 (Istio 구현), Gateway `istio-system/istio-gateway` |
-| 인증서 | cert-manager v1.20.2 + 사설 CA(`ClusterIssuer/homelab-ca`) |
+| 인증서 | cert-manager v1.20.2 + 사설 CA(`ClusterIssuer/homelab-ca`), Let's Encrypt 발급자(`letsencrypt-prod`, DNS-01 acme-dns) 준비 |
 | 스토리지 | local-path-provisioner v0.0.37 (기본 StorageClass `local-path`, Retain) |
 
 ## 폴더 구성
@@ -54,8 +54,8 @@ CNI나 Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 �
 | gateway-api-crds | system | (cluster) | github.com/kubernetes-sigs/gateway-api `config/crd/standard` @ v1.5.1 | v1.5.1 | — | prune 끔 |
 | cilium-lb | system | (cluster) | 이 레포 path @ main | — | `manifests/cilium-lb/` | LB IP 풀 .200–.220, L2 정책 |
 | local-path-provisioner | system | local-path-storage | github.com/rancher/local-path-provisioner `deploy/chart` @ v0.0.37 | v0.0.37 | `helm/local-path-provisioner/values.yaml` | 기본 StorageClass |
-| cert-manager | system | cert-manager | jetstack/cert-manager v1.20.2 | v1.20.2 | `helm/cert-manager/values.yaml` | `crds.enabled`, `crds.keep` |
-| cert-manager-issuers | system | cert-manager | 이 레포 path @ main | — | `manifests/cert-manager-issuers/` | 사설 CA `homelab-ca` |
+| cert-manager | system | cert-manager | jetstack/cert-manager v1.20.2 | v1.20.2 | `helm/cert-manager/values.yaml` | `crds.enabled`, `crds.keep`, DNS-01 확인은 1.1.1.1·8.8.8.8만, ServiceMonitor |
+| cert-manager-issuers | system | cert-manager | 이 레포 path @ main | — | `manifests/cert-manager-issuers/` | 사설 CA `homelab-ca`, `letsencrypt-staging`·`letsencrypt-prod`(acmeDNS `auth.acme-dns.io`, 계정은 Vault `secret/cert-manager/acme-dns` → ExternalSecret `acme-dns-account`), 경보 `CertificateExpiringSoon`(21일)·`CertificateNotReady`(30분) |
 | istio-base | system | istio-system | istio/base 1.30.3 | 1.30.3 | `helm/istio-base/values.yaml` | `defaultRevision: 1-30-3` |
 | istio-cni | system | istio-system | istio/cni 1.30.3 | 1.30.3 | `helm/istio-cni/values.yaml` | Cilium 체이닝 |
 | istiod-1-30-3 | system | istio-system | istio/istiod 1.30.3 | 1.30.3 | `helm/istiod-1-30-3/values.yaml` | revision `1-30-3`, tag `default`, replicas 2(HPA min 2, PDB, 노드 분산) |
