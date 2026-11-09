@@ -7,10 +7,11 @@ githubConfigSecret: arc-infralens-github-app   # GitHub App 자격 증명 Secret
 runnerScaleSetName: arc-infralens
 
 minRunners: 0
-# 러너 Pod 하나가 requests 3.5 CPU·3.5Gi를 쓴다(runner 2.5 CPU·3Gi + dind 1 CPU·512Mi, 아래 template).
-# limits는 메모리 7Gi(runner 6Gi + dind 1Gi), 디스크 emptyDir 최대 60Gi(work 20Gi + dind-storage 40Gi).
+# 러너 Pod 하나가 requests 5 CPU·4.5Gi를 쓴다(runner 4 CPU·4Gi + dind 1 CPU·512Mi, 아래 template).
+# limits는 메모리 9Gi(runner 8Gi + dind 1Gi), 디스크 emptyDir 최대 60Gi(work 20Gi + dind-storage 40Gi).
 # 수용(2026-10-30): worker-node-04 4개(CPU 기준, 3.5×4=14 / 16), worker-node-05 8개(메모리 기준),
 # worker-node-06 1개(2026-11-03: 2개일 때 e2e가 CPU 포화로 30분 초과 2회 → 라벨 awx.kr/runner-overflow=worker-node-06을 붙여 아래 anti-affinity로 1개 제한), 넘침 노드 worker-node-02·03 각 1개 = 15개(maxRunners 15). worker-node-05는 평상시 전원 끔이라 평소 7개(2026-11-03: 01을 빼고 03을 넣음, 05를 켜지 않기로 해서 켜진 노드로 채움)(2026-11-02 합의안). 2026-10-29 runner CPU 2→2.5: 몰릴 때 node-04가 CPU 포화(PSI cpu avg10 71%, load 50)라 5→4개로 줄임. worker-node-01은 PoC DB와 같은 디스크라 넘침에서 뺐다(2026-11-03). worker-node-03은 디스크 여유가 약 50G라 큰 빌드 때 디스크 부족에 주의한다.
+# 2026-11-09: runner CPU 2.5→4로 worker-node-04 4→3개 → 04 3 + 06 1 + 02·03 각 1 = 6개 동시. maxRunners 7은 그대로(7번째는 자리 날 때까지 대기)
 # 2026-11-07: worker-node-05 폐기(전력 과다, PM) → 05 몫 8개를 빼고 04 4 + 06 1 + 02·03 각 1 = 7개. 01은 넘침에 넣지 않음(PoC DB 디스크)
 maxRunners: 7
 
@@ -180,10 +181,10 @@ template:
             value: build-cache.ci-cache.svc.cluster.local:5000
         resources:
           requests:
-            cpu: "2.5"          # 빌드·테스트가 여기서 돈다(실사용 최대 5.5코어). 2026-10-21 1→2, 2026-10-29 2→2.5(node-04 러너 5→4)
-            memory: 3Gi         # 2026-10-28 2Gi→3Gi(노드에 자리를 더 잡아 둔다, 상한은 그대로)
+            cpu: "4"            # 빌드·테스트가 여기서 돈다(실사용 최대 5.5코어). 2026-10-21 1→2, 2026-10-29 2→2.5(node-04 러너 5→4), 2026-11-09 2.5→4(node-04 러너 4→3: 4개일 때 CPU 100%로 시험 120초 초과)
+            memory: 4Gi         # 2026-10-28 2Gi→3Gi, 2026-11-09 3Gi→4Gi
           limits:
-            memory: 6Gi         # 2026-10-29 4Gi→6Gi: web e2e(Playwright chrome-headless)가 node-05에서 4Gi에 걸려 OOMKilled(03:16·13:05·13:08). 요청은 그대로라 배치 불변
+            memory: 8Gi         # 2026-10-29 4Gi→6Gi: web e2e(Playwright chrome-headless)가 node-05에서 4Gi에 걸려 OOMKilled(03:16·13:05·13:08). 2026-11-09 6Gi→8Gi: 웹 단위 시험 중 6Gi에 닿아 러너가 끊김(runner lost communication)
         volumeMounts:
           - name: work
             mountPath: /home/runner/_work
