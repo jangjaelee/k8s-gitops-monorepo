@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"kc(){ /opt/homebrew/bin/kubectl --context rancher-desktop \\\"$@\\\"; }; until [ \\\"$(kc -n argo-cd get app infralens-poc -o jsonpath='{.status.sync.revisions[0]}')\\\" = d0b35572439d3cf3eb924ad9...",
+  "error": "Exit code 1\nSynced Progressing Succeeded\nWaiting for deployment \"infralens-app\" rollout to finish: 1 old replicas are pending termination...\ndeployment \"infralens-app\" successfully rolled out\ndeployment \"infralens-kube-gateway\" successfully rolled out\ndeployment \"infralens-web\" successfully rolled out\n(eval):1: no matches found: custom-columns=NAME:.metadata.name,IMAGE:.spec.template.spec.containers[0].image,READY:.status.readyReplicas",
+  "timestamp": "2026-10-23T10:16:48.370Z",
+  "retry_count": 1
+}

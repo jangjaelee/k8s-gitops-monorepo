@@ -1,0 +1,52 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1794192194729,
+  "projectRoot": "/Users/ijangjae/Workspaces/Alex/k8s-gitops-monorepo",
+  "techStack": {
+    "languages": [],
+    "frameworks": [],
+    "packageManager": null,
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": null,
+    "lintCommand": null,
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "cluster": {
+      "path": "cluster",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1794192194713,
+      "keyFiles": []
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "cluster/rancher-desktop/README.md",
+      "accessCount": 3,
+      "lastAccessed": 1792647734816,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

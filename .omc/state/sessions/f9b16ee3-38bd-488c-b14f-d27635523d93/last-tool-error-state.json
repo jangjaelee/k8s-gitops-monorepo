@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"lsof -p 80603 2>/dev/null | grep cwd; pgrep -P 80603 -l; pgrep -P 80605 -l; ps -o pid,ppid,etime,command -p $(pgrep -P 80605 | tr '\\\\n' ',' | sed 's/,$//') 2>/dev/null\",\"description\":\"Find...",
+  "error": "Exit code 1\nbash    80603 ijangjae  cwd    DIR   1,17      576           512136900 /private/tmp/claude-501/-Users-ijangjae-Workspaces-Alex-k8s-gitops-monorepo/250a1ccd-c7ec-4874-89be-43f1732f1deb/scratchpad/m15/src/collector/measure\n80605 caffeinate\n82072 sleep",
+  "timestamp": "2026-10-23T14:03:30.803Z",
+  "retry_count": 1
+}

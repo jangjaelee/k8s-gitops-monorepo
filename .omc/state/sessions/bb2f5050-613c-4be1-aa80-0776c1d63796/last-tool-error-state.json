@@ -1,0 +1,7 @@
+{
+  "tool_name": "mcp__claude-in-chrome__find",
+  "tool_input_preview": "{\"tabId\":756916687,\"query\":\"node detail panel sections: OS 보안, EOL, 커널, 지원 기간\"}",
+  "error": "The specific node detail panel sections for \"OS 보안\" (OS Security), \"EOL\", \"커널\" (Kernel), and \"지원 기간\" (Support Period) are not present in the current accessibility tree. These sections either do not exist on the current page view, are rendered in a way not captured by the accessibility tree, or require additional user interaction (such as scrolling or clicking tabs) to become visible.",
+  "timestamp": "2026-11-03T06:06:00.619Z",
+  "retry_count": 2
+}

@@ -1,0 +1,53 @@
+{
+  "agents": [
+    {
+      "agent_id": "ae04c4ada4422c5e9",
+      "agent_type": "gitops-pr-reviewer",
+      "started_at": "2026-10-22T13:38:16.769Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-10-22T13:39:46.423Z",
+      "duration_ms": 89654
+    },
+    {
+      "agent_id": "a566cfd20710d20e1",
+      "agent_type": "gitops-pr-reviewer",
+      "started_at": "2026-10-22T16:02:16.270Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-10-22T16:04:07.476Z",
+      "duration_ms": 111206
+    },
+    {
+      "agent_id": "ad76152d95e6c4202",
+      "agent_type": "gitops-pr-reviewer",
+      "started_at": "2026-10-22T16:11:03.332Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-10-22T16:13:10.930Z",
+      "duration_ms": 127598
+    },
+    {
+      "agent_id": "abe1b9fb17644d51f",
+      "agent_type": "gitops-pr-reviewer",
+      "started_at": "2026-10-23T00:14:04.606Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-10-23T00:14:48.389Z",
+      "duration_ms": 43783
+    },
+    {
+      "agent_id": "ae71aeec50c331ce7",
+      "agent_type": "gitops-pr-reviewer",
+      "started_at": "2026-10-23T10:09:28.687Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-10-23T10:10:51.632Z",
+      "duration_ms": 82945
+    }
+  ],
+  "total_spawned": 6,
+  "total_completed": 6,
+  "total_failed": 0,
+  "last_updated": "2026-10-23T10:10:51.735Z"
+}

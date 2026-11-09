@@ -1,0 +1,125 @@
+{
+  "updatedAt": "2026-10-23T10:10:51.632Z",
+  "missions": [
+    {
+      "id": "session:250a1ccd-c7ec-4874-89be-43f1732f1deb:none",
+      "source": "session",
+      "name": "none",
+      "objective": "Session mission",
+      "createdAt": "2026-10-22T13:38:16.769Z",
+      "updatedAt": "2026-10-23T10:10:51.632Z",
+      "status": "done",
+      "workerCount": 5,
+      "taskCounts": {
+        "total": 5,
+        "pending": 0,
+        "blocked": 0,
+        "inProgress": 0,
+        "completed": 5,
+        "failed": 0
+      },
+      "agents": [
+        {
+          "name": "gitops-pr-reviewer:ae04c4a",
+          "role": "gitops-pr-reviewer",
+          "ownership": "ae04c4ada4422c5e9",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-10-23T10:10:34.259Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:a566cfd",
+          "role": "gitops-pr-reviewer",
+          "ownership": "a566cfd20710d20e1",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-10-22T16:04:07.476Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:ad76152",
+          "role": "gitops-pr-reviewer",
+          "ownership": "ad76152d95e6c4202",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-10-22T16:13:10.930Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:abe1b9f",
+          "role": "gitops-pr-reviewer",
+          "ownership": "abe1b9fb17644d51f",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-10-23T00:14:48.389Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:ae71aee",
+          "role": "gitops-pr-reviewer",
+          "ownership": "ae71aeec50c331ce7",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-10-23T10:10:51.632Z"
+        }
+      ],
+      "timeline": [
+        {
+          "id": "session-stop:a7c7fa30529bd7221:2026-10-23T02:25:44.521Z",
+          "at": "2026-10-23T02:25:44.521Z",
+          "kind": "completion",
+          "agent": "gitops-pr-reviewer:ae04c4a",
+          "detail": "completed",
+          "sourceKey": "session-stop:a7c7fa30529bd7221"
+        },
+        {
+          "id": "session-stop:ad59168329bf79dab:2026-10-23T03:17:46.489Z",
+          "at": "2026-10-23T03:17:46.489Z",
+          "kind": "completion",
+          "agent": "gitops-pr-reviewer:ae04c4a",
+          "detail": "completed",
+          "sourceKey": "session-stop:ad59168329bf79dab"
+        },
+        {
+          "id": "session-start:ae71aeec50c331ce7:2026-10-23T10:09:28.687Z",
+          "at": "2026-10-23T10:09:28.687Z",
+          "kind": "update",
+          "agent": "gitops-pr-reviewer:ae71aee",
+          "detail": "started gitops-pr-reviewer:ae71aee",
+          "sourceKey": "session-start:ae71aeec50c331ce7"
+        },
+        {
+          "id": "session-stop:a3757dab442f4d801:2026-10-23T10:10:02.180Z",
+          "at": "2026-10-23T10:10:02.180Z",
+          "kind": "completion",
+          "agent": "gitops-pr-reviewer:ae04c4a",
+          "detail": "completed",
+          "sourceKey": "session-stop:a3757dab442f4d801"
+        },
+        {
+          "id": "session-stop:acdaf2db8577e2507:2026-10-23T10:10:34.259Z",
+          "at": "2026-10-23T10:10:34.259Z",
+          "kind": "completion",
+          "agent": "gitops-pr-reviewer:ae04c4a",
+          "detail": "completed",
+          "sourceKey": "session-stop:acdaf2db8577e2507"
+        },
+        {
+          "id": "session-stop:ae71aeec50c331ce7:2026-10-23T10:10:51.632Z",
+          "at": "2026-10-23T10:10:51.632Z",
+          "kind": "completion",
+          "agent": "gitops-pr-reviewer:ae71aee",
+          "detail": "completed",
+          "sourceKey": "session-stop:ae71aeec50c331ce7"
+        }
+      ]
+    }
+  ]
+}

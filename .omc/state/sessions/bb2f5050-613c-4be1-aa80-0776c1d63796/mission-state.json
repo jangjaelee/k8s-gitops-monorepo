@@ -1,0 +1,349 @@
+{
+  "updatedAt": "2026-11-03T14:45:54.839Z",
+  "missions": [
+    {
+      "id": "session:bb2f5050-613c-4be1-aa80-0776c1d63796:none",
+      "source": "session",
+      "name": "none",
+      "objective": "Session mission",
+      "createdAt": "2026-10-24T16:46:11.658Z",
+      "updatedAt": "2026-11-03T14:45:54.839Z",
+      "status": "done",
+      "workerCount": 29,
+      "taskCounts": {
+        "total": 29,
+        "pending": 0,
+        "blocked": 0,
+        "inProgress": 0,
+        "completed": 29,
+        "failed": 0
+      },
+      "agents": [
+        {
+          "name": "gitops-pr-reviewer:a3a2af4",
+          "role": "gitops-pr-reviewer",
+          "ownership": "a3a2af4510fe6559f",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-11-02T14:03:45.744Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:a6da296",
+          "role": "gitops-pr-reviewer",
+          "ownership": "a6da2968310c87951",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-10-28T13:02:22.478Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:a449146",
+          "role": "gitops-pr-reviewer",
+          "ownership": "a44914657a245b512",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-10-28T19:02:56.485Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:a6d403a",
+          "role": "gitops-pr-reviewer",
+          "ownership": "a6d403a186e2375b5",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-10-28T19:57:19.773Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:aa79781",
+          "role": "gitops-pr-reviewer",
+          "ownership": "aa79781bad3229c43",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-10-28T20:10:20.961Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:a929da1",
+          "role": "gitops-pr-reviewer",
+          "ownership": "a929da1d76f3cae2e",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-10-28T20:44:00.396Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:a6e8431",
+          "role": "gitops-pr-reviewer",
+          "ownership": "a6e843115b306f71d",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-10-29T01:46:33.573Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:a93745c",
+          "role": "gitops-pr-reviewer",
+          "ownership": "a93745c07978f7729",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-10-29T02:44:26.444Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:a4f545c",
+          "role": "gitops-pr-reviewer",
+          "ownership": "a4f545c2c1808fa65",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-10-29T04:31:33.761Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:a921721",
+          "role": "gitops-pr-reviewer",
+          "ownership": "a92172104d212c399",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-10-29T05:47:18.432Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:ac5edab",
+          "role": "gitops-pr-reviewer",
+          "ownership": "ac5edab7046c32ac9",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-10-29T08:31:59.820Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:a4b3106",
+          "role": "gitops-pr-reviewer",
+          "ownership": "a4b310636497fe83b",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-10-29T18:15:21.451Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:adf0d12",
+          "role": "gitops-pr-reviewer",
+          "ownership": "adf0d124cc0c2e3e7",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-10-30T02:18:39.109Z"
+        },
+        {
+          "name": "general-purpose:a9b05ff",
+          "role": "general-purpose",
+          "ownership": "a9b05ff6f9099b216",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-10-30T03:06:00.052Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:a60c5c0",
+          "role": "gitops-pr-reviewer",
+          "ownership": "a60c5c01e07af95cf",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-10-30T06:10:04.306Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:a7b70f0",
+          "role": "gitops-pr-reviewer",
+          "ownership": "a7b70f09ed2bb8b17",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-10-30T06:12:19.867Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:a95e22f",
+          "role": "gitops-pr-reviewer",
+          "ownership": "a95e22f9f70a5ebe8",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-10-30T18:57:37.637Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:ae7f366",
+          "role": "gitops-pr-reviewer",
+          "ownership": "ae7f36611ede7c526",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-10-30T23:50:11.454Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:a54dcd1",
+          "role": "gitops-pr-reviewer",
+          "ownership": "a54dcd17ee520e487",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-10-31T02:20:56.410Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:a24b584",
+          "role": "gitops-pr-reviewer",
+          "ownership": "a24b5848db4ef7951",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-10-31T07:56:02.350Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:ae632e1",
+          "role": "gitops-pr-reviewer",
+          "ownership": "ae632e12b02c8fffe",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-11-01T02:35:41.778Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:ad705a7",
+          "role": "gitops-pr-reviewer",
+          "ownership": "ad705a7262c2a88a5",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-11-01T05:39:02.361Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:afbcd1d",
+          "role": "gitops-pr-reviewer",
+          "ownership": "afbcd1dc30f8b89f7",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-11-02T01:15:09.216Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:aea7370",
+          "role": "gitops-pr-reviewer",
+          "ownership": "aea73701a9791c737",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-11-02T13:43:42.797Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:aa4af60",
+          "role": "gitops-pr-reviewer",
+          "ownership": "aa4af601c53c41534",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-11-02T17:41:24.976Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:a6d8264",
+          "role": "gitops-pr-reviewer",
+          "ownership": "a6d8264239bcf3a84",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-11-02T17:43:13.577Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:af974a2",
+          "role": "gitops-pr-reviewer",
+          "ownership": "af974a2835bd955f1",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-11-03T02:23:01.386Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:a05e81a",
+          "role": "gitops-pr-reviewer",
+          "ownership": "a05e81acd976b8a3f",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-11-03T04:53:33.647Z"
+        },
+        {
+          "name": "gitops-pr-reviewer:a16e108",
+          "role": "gitops-pr-reviewer",
+          "ownership": "a16e10831de07ff9c",
+          "status": "done",
+          "currentStep": null,
+          "latestUpdate": "completed",
+          "completedSummary": null,
+          "updatedAt": "2026-11-03T14:45:54.839Z"
+        }
+      ],
+      "timeline": [
+        {
+          "id": "session-start:a05e81acd976b8a3f:2026-11-03T04:52:09.980Z",
+          "at": "2026-11-03T04:52:09.980Z",
+          "kind": "update",
+          "agent": "gitops-pr-reviewer:a05e81a",
+          "detail": "started gitops-pr-reviewer:a05e81a",
+          "sourceKey": "session-start:a05e81acd976b8a3f"
+        },
+        {
+          "id": "session-stop:a05e81acd976b8a3f:2026-11-03T04:53:33.647Z",
+          "at": "2026-11-03T04:53:33.647Z",
+          "kind": "completion",
+          "agent": "gitops-pr-reviewer:a05e81a",
+          "detail": "completed",
+          "sourceKey": "session-stop:a05e81acd976b8a3f"
+        },
+        {
+          "id": "session-start:a16e10831de07ff9c:2026-11-03T14:44:44.686Z",
+          "at": "2026-11-03T14:44:44.686Z",
+          "kind": "update",
+          "agent": "gitops-pr-reviewer:a16e108",
+          "detail": "started gitops-pr-reviewer:a16e108",
+          "sourceKey": "session-start:a16e10831de07ff9c"
+        },
+        {
+          "id": "session-stop:a16e10831de07ff9c:2026-11-03T14:45:54.839Z",
+          "at": "2026-11-03T14:45:54.839Z",
+          "kind": "completion",
+          "agent": "gitops-pr-reviewer:a16e108",
+          "detail": "completed",
+          "sourceKey": "session-stop:a16e10831de07ff9c"
+        }
+      ]
+    }
+  ]
+}
