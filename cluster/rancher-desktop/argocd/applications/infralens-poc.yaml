@@ -15,7 +15,7 @@ spec:
         # 이 파일을 kubectl apply해야 반영되므로, 따로 두면 그 사이 차트와 이미지가 어긋난다. 릴리스 태그면 appVersion을 쓰므로 두지 않는다.
         parameters:
           - name: image.tag
-            value: sha-c13a661
+            value: "0.8.0"
           # mcp.enabled는 157f41c 차트부터 있는 키라 targetRevision과 한 번에 적용되도록 values가 아니라 여기 둔다
           - name: mcp.enabled
             value: "true"
