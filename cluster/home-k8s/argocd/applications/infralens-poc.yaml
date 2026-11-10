@@ -15,7 +15,7 @@ spec:
         # 이 파일을 kubectl apply해야 반영되므로, 따로 두면 그 사이 차트와 이미지가 어긋난다. 릴리스 태그면 appVersion을 쓰므로 두지 않는다.
         parameters:
           - name: image.tag
-            value: sha-563103c
+            value: sha-c13a661
           # (M52 역할 분리, 2026-11-09 사용자 승인) 채팅·조사·알림 분석은 infralens-llm, /mcp는 infralens-mcp Deployment가 맡는다(각 2개).
           # 판과 같이 바뀌어야 해서 values 파일이 아니라 여기 둔다
           - name: llm.deployment.enabled
