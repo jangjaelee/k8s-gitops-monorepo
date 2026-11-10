@@ -39,7 +39,7 @@ trivyOperator:
                 values: [worker-node-01]
 
 trivy:
-  # 검사 Job과 Trivy 서버에 같이 적용
+  # 검사 Job 자원
   resources:
     requests:
       cpu: 100m
@@ -47,6 +47,15 @@ trivy:
     limits:
       cpu: 500m
       memory: 1Gi
+  # 내장 Trivy 서버 자원(차트 기본 200m/512Mi, limit 1코어/1Gi → 검사 Job과 같게 낮춤)
+  server:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
   storageSize: "3Gi"
   # 고칠 수 있는 HIGH·CRITICAL·MEDIUM 위주로 보고서를 작게(LOW·UNKNOWN 제외)
   severity: MEDIUM,HIGH,CRITICAL
