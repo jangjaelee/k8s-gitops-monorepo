@@ -9,8 +9,8 @@ operator:
   # 검사 Job은 한 번에 1개만(기본 10)
   scanJobsConcurrentLimit: 1
   scanJobsRetryDelay: 5m
-  # 끝난 검사 Pod는 10분 뒤 정리
-  scanJobTTL: 10m
+  # scanJobTTL은 두지 않는다: 두면 끝난 Job이 TTL 동안 남아 동시 1개 자리를 차지해 10분에 1개만 검사됨(11-10 확인).
+  # 비워 두면 Operator가 결과를 읽은 즉시 Job을 지운다
   # 보고서는 7일 뒤 다시 검사(기본 24h). 새로 배포된 판은 바로 검사됨
   scannerReportTTL: "168h"
   vulnerabilityScannerScanOnlyCurrentRevisions: true
