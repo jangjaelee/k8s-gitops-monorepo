@@ -67,6 +67,11 @@ kube:
     # 2026-10-29 작은 종류 6개 더함(PM 결정 "종류 숫자 (c)"): 탐색기 왼쪽 종류 숫자가 클릭 전에 비지 않게. 클러스터당 watch +6, 메모리 수 MB(lab2 실측)
     warm: [pod, deployment, replicaset, statefulset, daemonset, job, cronjob, horizontalpodautoscaler, service, endpointslice, ingress, ingressclass, networkpolicy, persistentvolumeclaim, node, event, namespace,
            poddisruptionbudget, priorityclass, runtimeclass, mutatingwebhookconfiguration, validatingwebhookconfiguration, storageclass]
+  # (M29 ③) Trivy Operator의 VulnerabilityReport 읽기. 수집기 ClusterRole에 aquasecurity.github.io vulnerabilityreports get·list·watch 추가,
+  # 게이트웨이 env INFRALENS_KUBE_SECURITY_TRIVY=true. 쓰기 권한 없음. Trivy는 argocd/applications/trivy-operator.yaml. 2026-11-10 사용자 결정
+  security:
+    trivy:
+      enabled: true
 # AI 채팅. API 키는 Secret 이름만 가리킨다(키 api-key, InfraLens 쪽이 infralens ns에 만든다).
 # 켜면 API 서버에 LLM env가 붙고 종료 유예가 길어지며(응답 스트림 마무리), 주간 평가 CronJob infralens-llm-eval이 생긴다.
 llm:
