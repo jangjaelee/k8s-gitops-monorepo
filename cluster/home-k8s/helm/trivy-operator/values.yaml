@@ -1,0 +1,71 @@
+# chart: aqua/trivy-operator 0.38.1 (Trivy Operator 0.36.1, Trivy 0.76.1)  (Argo CD app: argocd/applications/trivy-operator.yaml)
+# 목적: InfraLens PoC의 컨테이너 취약점 화면(M29 ③, kube.security.trivy)용 VulnerabilityReport 생성.
+# 원칙: 이미지 취약점 검사만, 자원·개발(CI) 영향 최소.
+
+# CI 러너·캐시와 시스템 리스 ns는 검사하지 않는다(러너 Pod는 잡마다 새로 떠서 검사 Job이 끝없이 생김)
+excludeNamespaces: "arc-runners,arc-systems,ci-cache,kube-node-lease,kube-public"
+
+operator:
+  # 검사 Job은 한 번에 1개만(기본 10)
+  scanJobsConcurrentLimit: 1
+  scanJobsRetryDelay: 5m
+  # 끝난 검사 Pod는 10분 뒤 정리
+  scanJobTTL: 10m
+  # 보고서는 7일 뒤 다시 검사(기본 24h). 새로 배포된 판은 바로 검사됨
+  scannerReportTTL: "168h"
+  vulnerabilityScannerScanOnlyCurrentRevisions: true
+  # 이미지 취약점 외 검사는 모두 끔
+  vulnerabilityScannerEnabled: true
+  sbomGenerationEnabled: false
+  clusterSbomCacheEnabled: false
+  configAuditScannerEnabled: false
+  rbacAssessmentScannerEnabled: false
+  infraAssessmentScannerEnabled: false
+  clusterComplianceEnabled: false
+  exposedSecretScannerEnabled: false
+  # 클러스터 안 Trivy 서버(StatefulSet)가 취약점 DB를 한 번만 받아 두고, 검사 Job은 서버에 묻기만 한다(Job마다 DB 내려받기 없음)
+  builtInTrivyServer: true
+
+trivyOperator:
+  # 검사 Job은 가장 한가한 일반 워커(worker-node-01)를 우선. CI 전용 노드(04·06)는 taint dedicated라 toleration이 없어 가지 않음
+  scanJobAffinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          preference:
+            matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values: [worker-node-01]
+
+trivy:
+  # 검사 Job 자원
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  # 내장 Trivy 서버 자원(차트 기본 200m/512Mi, limit 1코어/1Gi → 검사 Job과 같게 낮춤)
+  server:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+  storageSize: "3Gi"
+  # 고칠 수 있는 HIGH·CRITICAL·MEDIUM 위주로 보고서를 작게(LOW·UNKNOWN 제외)
+  severity: MEDIUM,HIGH,CRITICAL
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    memory: 512Mi
+
+serviceMonitor:
+  enabled: false
