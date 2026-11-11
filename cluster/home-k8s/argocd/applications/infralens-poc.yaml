@@ -18,10 +18,9 @@ spec:
             value: "0.8.0"
           # (M52 역할 분리, 2026-11-09 사용자 승인) 채팅·조사·알림 분석은 infralens-llm, /mcp는 infralens-mcp Deployment가 맡는다(각 2개).
           # 판과 같이 바뀌어야 해서 values 파일이 아니라 여기 둔다
-          - name: llm.deployment.enabled
-            value: "true"
-          - name: mcp.deployment.enabled
-            value: "true"
+          # 2026-11-11 차트 0.7.0+의 deploymentMode로 옮김(옛 llm·mcp.deployment.enabled는 사용 중단 예정). 렌더 결과 같음(사용자 승인)
+          - name: deploymentMode
+            value: microservices
           # (M19) Istio 사이드카는 app·web·kube-gateway에만 Pod 라벨로 주입한다. DB(infralens-pg)·수집 Job은 넣지 않는다.
           # 차트 0.2.0(8ed8e3c)부터 있는 키라 values 파일에 두면 머지 직후 옛 차트로 sync되며 스키마 오류가 나므로 여기 둔다
           - name: app.podLabels.sidecar\.istio\.io/inject
