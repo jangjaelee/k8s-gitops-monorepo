@@ -131,3 +131,12 @@ llm:
 cloudAudit:
   changeActors:
     enabled: true
+
+# 2026-11-12 PM 승인: 수집 Job 메모리 2Gi→3Gi(요청 1Gi→1.5Gi). config 잡이 2047Mi로 한도에 닿고 core 잡이 OOMKilled(11-11 측정).
+# core·config·gcp 잡에 함께 적용. 노드 할당 가능 약 15.6Gi, 바꾼 뒤 limits 합 약 87%
+collector:
+  resources:
+    requests:
+      memory: 1536Mi
+    limits:
+      memory: 3Gi
