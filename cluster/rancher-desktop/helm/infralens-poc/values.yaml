@@ -135,6 +135,11 @@ cloudAudit:
 # 2026-11-12 PM 승인: 수집 Job 메모리 2Gi→3Gi(요청 1Gi→1.5Gi). config 잡이 2047Mi로 한도에 닿고 core 잡이 OOMKilled(11-11 측정).
 # core·config·gcp 잡에 함께 적용. 노드 할당 가능 약 15.6Gi, 바꾼 뒤 limits 합 약 87%
 collector:
+  # 2026-11-12 PM 승인: 3Gi에서도 core OOM(peak 3072Mi, steampipe 재시작 409). Steampipe 캐시 끄고 메모리 상한(backend 판단)
+  extraEnv:
+    - { name: STEAMPIPE_CACHE, value: "false" }
+    - { name: STEAMPIPE_MEMORY_MAX_MB, value: "256" }
+    - { name: STEAMPIPE_PLUGIN_MEMORY_MAX_MB, value: "512" }
   resources:
     requests:
       memory: 1536Mi
