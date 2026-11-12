@@ -34,6 +34,9 @@ spec:
           # (D872) 차트 NetworkPolicy 기본 켬은 끔. 오피스는 Istio 사이드카와 Mimir 경로(19080)가 있어 PoC와 같이 끔. kubelet 차단(blockKubeletEgress)은 기본 켬 유지
           - name: networkPolicy.enabled
             value: "false"
+          # NAT 화면 클라우드 지표(화면 열 때만 읽음, 대상 결제 계정 과금). 주기 수집(cloudMetrics.periodic)은 끔 유지. PM 승인 11-13
+          - name: cloudMetrics.enabled
+            value: "true"
         valueFiles:
           - $values/cluster/rancher-desktop/helm/infralens-poc/values.yaml
     - repoURL: https://github.com/jangjaelee/k8s-gitops-monorepo.git
