@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: alloy
+  namespace: argo-cd
+spec:
+  destination:
+    namespace: alloy
+    server: https://kubernetes.default.svc
+  project: o11y
+  sources:
+    - chart: alloy
+      helm:
+        releaseName: alloy
+        valueFiles:
+          - $values/cluster/home-k8s/helm/alloy/values.yaml
+      repoURL: https://grafana.github.io/helm-charts
+      targetRevision: 1.15.0
+    - ref: values
+      repoURL: https://github.com/jangjaelee/k8s-gitops-monorepo.git
+      targetRevision: main
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

@@ -115,3 +115,9 @@ networkPolicy:
       to:
         - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: prometheus-operator } }
       ports: [9090]
+  # (2026-11-12 사용자 결정) Kube 게이트웨이 → Loki(접속 국가의 Loki 관측 원천, http://loki.loki.svc:3100). 되돌리기: 이 목록 삭제
+  kubeGatewayExtraEgress:
+    - to:
+        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: loki } }
+      ports:
+        - { protocol: TCP, port: 3100 }

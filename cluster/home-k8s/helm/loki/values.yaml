@@ -1,0 +1,49 @@
+# chart: grafana/loki 7.6.0 (Loki 3.6.18)  (Argo CD app: argocd/applications/loki.yaml)
+# Istio 접근 로그(istio-proxy) 저장소. InfraLens PoC 접속 국가의 Loki 관측 원천. 2026-11-12 사용자 결정(istio-proxy만, 보관 7일·10Gi)
+# 단일 바이너리, 파일시스템(local-path PVC), 레플리카 1. 인증 없음(클러스터 안 http://loki.loki.svc:3100)
+deploymentMode: SingleBinary
+loki:
+  auth_enabled: false
+  commonConfig:
+    replication_factor: 1
+  storage:
+    type: filesystem
+  schemaConfig:
+    configs:
+      - from: "2026-11-01"
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: index_
+          period: 24h
+  limits_config:
+    retention_period: 168h
+    reject_old_samples: true
+    reject_old_samples_max_age: 168h
+  compactor:
+    retention_enabled: true
+    delete_request_store: filesystem
+  pattern_ingester:
+    enabled: false
+  ruler:
+    enabled: false
+singleBinary:
+  replicas: 1
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: local-path
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { memory: 1Gi }
+# 단일 바이너리에 필요 없는 구성요소는 끈다
+read: { replicas: 0 }
+write: { replicas: 0 }
+backend: { replicas: 0 }
+gateway: { enabled: false }
+chunksCache: { enabled: false }
+resultsCache: { enabled: false }
+lokiCanary: { enabled: false }
+test: { enabled: false }
+minio: { enabled: false }

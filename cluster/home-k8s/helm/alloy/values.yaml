@@ -1,0 +1,73 @@
+# chart: grafana/alloy 1.15.0 (Alloy v1.21.3)  (Argo CD app: argocd/applications/alloy.yaml)
+# 노드마다(DaemonSet) /var/log/pods에서 istio-proxy 컨테이너 로그만 읽어 Loki로 보낸다. 2026-11-12 사용자 결정(istio-proxy만)
+# 레이블은 InfraLens Loki 원천 기본 이름(namespace·pod·container)에 맞춘다
+controller:
+  type: daemonset
+  tolerations:
+    - operator: Exists
+alloy:
+  mounts:
+    varlog: true
+  resources:
+    requests: { cpu: 20m, memory: 64Mi }
+    limits: { memory: 256Mi }
+  configMap:
+    content: |
+      discovery.kubernetes "pods" {
+        role = "pod"
+        selectors {
+          role  = "pod"
+          field = "spec.nodeName=" + coalesce(sys.env("HOSTNAME"), constants.hostname)
+        }
+      }
+
+      discovery.relabel "istio_proxy" {
+        targets = discovery.kubernetes.pods.targets
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          regex         = "istio-proxy"
+          action        = "keep"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label  = "namespace"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          target_label  = "pod"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          target_label  = "container"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_node_name"]
+          target_label  = "node"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_uid", "__meta_kubernetes_pod_container_name"]
+          separator     = "/"
+          target_label  = "__path__"
+          replacement   = "/var/log/pods/*$1/*.log"
+        }
+      }
+
+      local.file_match "istio_proxy" {
+        path_targets = discovery.relabel.istio_proxy.output
+      }
+
+      loki.source.file "istio_proxy" {
+        targets    = local.file_match.istio_proxy.targets
+        forward_to = [loki.process.cri.receiver]
+      }
+
+      loki.process "cri" {
+        stage.cri {}
+        forward_to = [loki.write.default.receiver]
+      }
+
+      loki.write "default" {
+        endpoint {
+          url = "http://loki.loki.svc:3100/loki/api/v1/push"
+        }
+      }
