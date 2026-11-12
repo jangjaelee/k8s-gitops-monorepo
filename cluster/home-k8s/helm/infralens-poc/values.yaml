@@ -121,3 +121,9 @@ networkPolicy:
         - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: loki } }
       ports:
         - { protocol: TCP, port: 3100 }
+  # 관측 원천 연결 확인은 API 서버(app)가 한다. 없으면 시간 초과(2026-11-12 확인)
+  appExtraEgress:
+    - to:
+        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: loki } }
+      ports:
+        - { protocol: TCP, port: 3100 }
