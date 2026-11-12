@@ -144,4 +144,4 @@ collector:
     requests:
       memory: 1536Mi
     limits:
-      memory: 3Gi
+      memory: 4Gi
