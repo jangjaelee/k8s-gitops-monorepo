@@ -105,6 +105,11 @@ metrics:
     enabled: true
     labels: { release: kube-prometheus-stack }
 
+# (11-13 PM 요청) NAT 지표(CloudWatch·Cloud Monitoring) 읽기. 켜도 운영 설정 nat.metrics.enabled와 대상 스위치를 켜야 읽음(세 겹).
+# 읽으면 대상 결제 계정에 지표 읽기 요금이 붙음. 주기 수집(periodic)은 기본 꺼짐 유지
+cloudMetrics:
+  enabled: true
+
 # (M42, 2026-11-06 PL 위임 결정) 차트 NetworkPolicy. 켜기·끄기는 Application parameters의 networkPolicy.enabled.
 # lab2 실측(사이드카 주입 + istio)으로 확인. 되돌리기: parameters networkPolicy.enabled "false"
 networkPolicy:
