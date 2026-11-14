@@ -69,6 +69,10 @@ kube:
            poddisruptionbudget, priorityclass, runtimeclass, mutatingwebhookconfiguration, validatingwebhookconfiguration, storageclass]
   # (M29 ③) Trivy Operator의 VulnerabilityReport 읽기. 수집기 ClusterRole에 aquasecurity.github.io vulnerabilityreports get·list·watch 추가,
   # 게이트웨이 env INFRALENS_KUBE_SECURITY_TRIVY=true. 쓰기 권한 없음. Trivy는 argocd/applications/trivy-operator.yaml. 2026-11-10 사용자 결정
+  # (11-14 PM 지시) Pod 터미널 녹화. exec 켜기·막는 ns는 Application parameters. 내장 Valkey(StatefulSet, 4Gi PVC, 메모리 3Gi)가 생긴다
+  exec:
+    recording:
+      enabled: true
   security:
     trivy:
       enabled: true
@@ -113,6 +117,24 @@ metrics:
 cloudMetrics:
   enabled: true
 
+# (11-14 PM 지시) Pod 터미널 녹화 증적 저장소: PoC versitygw(argocd/applications/infralens-vgw.yaml, 버킷 infralens-evidence Object Lock).
+# 키·CA는 레포 밖에서 만든다: Secret infralens-evidence-vgw(access_key_id·secret_access_key), ConfigMap infralens-evidence-vgw-ca(ca.crt).
+# 녹화 스위치는 kube.exec.recording(아래)과 운영 설정 kube.podShellRecording. 되돌리기: 둘 다 false
+compliance:
+  storage:
+    enabled: true
+    provider: s3
+    bucket: infralens-evidence
+    prefix: infralens-poc
+    credentials:
+      mode: static
+      existingSecret: infralens-evidence-vgw
+    s3:
+      endpoint: https://vgw.infralens-vgw.svc
+      region: us-east-1
+      forcePathStyle: true
+      caConfigMap: infralens-evidence-vgw-ca
+
 # (M42, 2026-11-06 PL 위임 결정) 차트 NetworkPolicy. 켜기·끄기는 Application parameters의 networkPolicy.enabled.
 # lab2 실측(사이드카 주입 + istio)으로 확인. 되돌리기: parameters networkPolicy.enabled "false"
 networkPolicy:
@@ -129,9 +151,19 @@ networkPolicy:
         - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: loki } }
       ports:
         - { protocol: TCP, port: 3100 }
+    # (11-14) 증적 저장소(versitygw 443): 녹화·스냅샷 업로드
+    - to:
+        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: infralens-vgw } }
+      ports:
+        - { protocol: TCP, port: 443 }
   # 관측 원천 연결 확인은 API 서버(app)가 한다. 없으면 시간 초과(2026-11-12 확인)
   appExtraEgress:
     - to:
         - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: loki } }
       ports:
         - { protocol: TCP, port: 3100 }
+    # (11-14) 증적 저장소(versitygw 443): 녹화·스냅샷 업로드
+    - to:
+        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: infralens-vgw } }
+      ports:
+        - { protocol: TCP, port: 443 }
