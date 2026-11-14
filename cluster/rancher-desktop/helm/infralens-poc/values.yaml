@@ -148,3 +148,19 @@ collector:
       memory: 1536Mi
     limits:
       memory: 4Gi
+
+# 2026-11-14 PM 승인: Pod 터미널 녹화 증적 저장소 = 오피스 클러스터 안 versitygw(infralens-vgw, 내부 전용, object lock 버킷)
+compliance:
+  storage:
+    enabled: true
+    provider: s3
+    bucket: infralens-evidence
+    prefix: infralens-office
+    s3:
+      region: us-east-1
+      endpoint: https://vgw.infralens-vgw.svc
+      forcePathStyle: true
+      caConfigMap: infralens-evidence-vgw-ca
+    credentials:
+      mode: static
+      existingSecret: infralens-evidence-vgw
