@@ -10,7 +10,7 @@
 
 | 항목 | 값 |
 |---|---|
-| 구성 | kubeadm, 7노드(control-plane 1 + worker 3 + CI 전용 worker-node-04·05·06, worker-node-05는 2026-11-10 새 장비로 다시 join, 아래 "CI 전용 노드"), Ubuntu 24.04, 모든 노드 Wi-Fi(192.168.50.0/24) |
+| 구성 | kubeadm, 8노드(control-plane 1 + worker 3 + CI 전용 worker-node-04·05·06·07, worker-node-05는 2026-11-10 새 장비로 다시 join, 07은 2026-11-14 join, 아래 "CI 전용 노드"), Ubuntu 24.04, 모든 노드 Wi-Fi(192.168.50.0/24) |
 | Kubernetes | v1.36.0 |
 | 컨테이너 런타임 | containerd 2.4.2 |
 | CNI | Cilium 1.20.2 — kube-proxy 대체, VXLAN, LB IPAM + L2 announcement, Local Redirect Policy |
@@ -315,7 +315,7 @@ Actions Runner Controller(러너 스케일 셋 모드)로 GitHub Actions self-ho
 | 컨트롤러 | 앱 `arc-controller`, ns `arc-systems`, `watchSingleNamespace: arc-runners`(ClusterRole 없음). 리스너 Pod도 여기 뜹니다 |
 | 스케일 셋 | 앱 `arc-infralens`, ns `arc-runners`, 이름 **`arc-infralens`**(= 워크플로 `runs-on` 값), 저장소 단위 등록 |
 | 러너 | ephemeral(잡 하나 후 삭제), min 0 / max 8, linux/amd64. Pod당 requests 5 CPU·4.5Gi, 메모리 limit 9Gi(runner 4 CPU·4Gi / 8Gi(2026-10-29 4→6Gi e2e OOM, 2026-11-09 6→8Gi·CPU 2.5→4 웹 단위 시험 끊김·node-04 CPU 포화), dind 1 CPU·512Mi / 1Gi. dind는 2026-10-27 실사용 최대 491Mi 기준으로 줄임) |
-| 배치 | CI 전용 worker-node-04·05·06을 먼저 채우고(04 > 06 > 05 순, weight 60·30·0, 2026-11-02. 05는 평상시 전원 끔. 다른 점수와 합산되어 순서를 보장하지는 않음)(preferred nodeAffinity + taint toleration), 넘치면 라벨 `awx.kr/runner-overflow=<노드 이름>`이 붙은 일반 노드에 노드당 1개까지(required nodeAffinity + 그 라벨 기준 required podAntiAffinity). 지금 넘침 노드는 worker-node-02·03(2026-11-03 01을 빼고 03을 넣음. 01은 PoC DB와 같은 디스크, 03은 디스크 여유 약 50G라 큰 빌드 때 디스크 부족 주의). 수용은 04 3개(2026-11-09 CPU 요청 4로 4→3), 06 1개(2026-11-03 CPU 포화로 넘침 라벨을 붙여 1개 제한), 05 1개(2026-11-10 새 장비, 넘침 라벨로 1개 제한), 02·03 각 1개로 7개(maxRunners 8, 8번째는 대기. 2026-11-07 옛 worker-node-05 폐기로 15→7, 2026-11-10 새 05로 7→8) |
+| 배치 | CI 전용 worker-node-04·05·06을 먼저 채우고(04 > 06 > 05 순, weight 60·30·0, 2026-11-02. 05는 평상시 전원 끔. 다른 점수와 합산되어 순서를 보장하지는 않음)(preferred nodeAffinity + taint toleration), 넘치면 라벨 `awx.kr/runner-overflow=<노드 이름>`이 붙은 일반 노드에 노드당 1개까지(required nodeAffinity + 그 라벨 기준 required podAntiAffinity). 지금 넘침 노드는 worker-node-02·03(2026-11-03 01을 빼고 03을 넣음. 01은 PoC DB와 같은 디스크, 03은 디스크 여유 약 50G라 큰 빌드 때 디스크 부족 주의). 수용은 04 3개(2026-11-09 CPU 요청 4로 4→3), 06 1개(2026-11-03 CPU 포화로 넘침 라벨을 붙여 1개 제한), 05 1개(2026-11-10 새 장비, 넘침 라벨로 1개 제한), 07 1개(2026-11-14 새 장비, 넘침 라벨로 1개 제한), 02·03 각 1개로 8개(maxRunners 9, 9번째는 대기. 2026-11-14 07 join으로 8→9. 2026-11-07 옛 worker-node-05 폐기로 15→7, 2026-11-10 새 05로 7→8) |
 | 우선순위 | PriorityClass `ci-runner-low`(value -100, `preemptionPolicy: Never`, `manifests/arc-infralens/priorityclass.yaml`). 서비스 Pod(PriorityClass 없음 = 0)보다 낮아, 러너는 남을 밀지 않고 자리가 모자라면 서비스가 러너를 밀어냅니다(그 CI 잡은 실패). kubelet 메모리·디스크 축출도 러너가 먼저입니다 |
 | Go 캐시 | 노드 hostPath `/var/lib/ci-cache/go` → 러너 `/ci-cache/go`(`GOMODCACHE`·`GOCACHE`), `INFRALENS_CI_LOCAL_GO_CACHE=1`이면 워크플로가 setup-go 캐시를 끔. 잡 사이에 남음 |
 | Playwright 캐시 | 노드 hostPath `/var/lib/ci-cache/ms-playwright` → runner 컨테이너 `/ci-cache/ms-playwright`(`PLAYWRIGHT_BROWSERS_PATH`). 이미 받은 브라우저 버전은 `npx playwright install`이 건너뜀. 버전당 약 0.5~1GB, 자동 정리 없음. apt 캐시는 두지 않음(러너끼리 잠금 충돌) |
@@ -362,6 +362,7 @@ kubectl taint node worker-node-04 dedicated=ci:NoSchedule
 kubectl label node worker-node-04 node-role.kubernetes.io/ci=
 # worker-node-05·06은 join 때 JoinConfiguration nodeRegistration.taints로 taint를 넣고 라벨만 붙였다
 kubectl label node worker-node-05 node-role.kubernetes.io/ci= node-role.kubernetes.io/worker= awx.kr/runner-overflow=worker-node-05
+kubectl label node worker-node-07 node-role.kubernetes.io/ci= node-role.kubernetes.io/worker= awx.kr/runner-overflow=worker-node-07  # 2026-11-14, 192.168.50.116 i5-8265U 8스레드·15Gi
 kubectl label node worker-node-06 node-role.kubernetes.io/ci= node-role.kubernetes.io/worker=
 # 넘침 노드(러너 노드당 1개). 값은 노드마다 달라야 한다. 넣기 전에 메모리 여유(allocatable − 서비스 requests·실사용) ≥ 5Gi,
 # 디스크 여유(kubelet 축출 기준을 뺀 값) ≥ 60Gi인지 본다. 서비스에 영향이 보이면 바로 뗀다(`awx.kr/runner-overflow-`)
