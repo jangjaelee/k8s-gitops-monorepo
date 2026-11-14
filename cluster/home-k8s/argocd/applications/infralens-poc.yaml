@@ -8,7 +8,7 @@ spec:
   sources:
     - repoURL: git@github.com:jangjaelee/infralens.git   # 비공개. 읽기 전용 배포 키 Secret argo-cd/repo-infralens(레포에 넣지 않음, README "InfraLens PoC" 절)
       path: deploy/helm/infralens
-      targetRevision: v0.10.1   # 릴리스 태그(이미지는 appVersion). 개발 중 커밋을 쓸 때는 커밋 고정(main 금지)하고 아래 image.tag를 둔다
+      targetRevision: v0.10.2   # 릴리스 태그(이미지는 appVersion). 개발 중 커밋을 쓸 때는 커밋 고정(main 금지)하고 아래 image.tag를 둔다
       helm:
         releaseName: infralens
         # 커밋으로 올릴 때는 image.tag를 values 파일이 아니라 여기 둔다. values는 머지 즉시 자동 sync되고 targetRevision은
