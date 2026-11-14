@@ -68,9 +68,6 @@ web:
 kube:
   # 터미널 녹화(ADR-0027, 내장 Valkey 함께 설치, PM 11-14)
   exec:
-    # 2026-11-15 PM 승인(녹화 검수): 오피스 in-cluster 시험 네임스페이스 하나만 터미널 허용
-    enabled: true
-    namespaces: [infralens-shell-test]
     recording:
       enabled: true
   # 2026-11-14 PM 승인: 정책 엔진(Kyverno) 보고서 읽기. 수집기 ClusterRole에 policyreports get·list·watch만 더함(쓰기 없음)
