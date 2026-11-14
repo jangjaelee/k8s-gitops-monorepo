@@ -1,0 +1,78 @@
+# Secret vgw-root(ROOT_ACCESS_KEY_ID, ROOT_SECRET_ACCESS_KEY)는 레포 밖에서 사용자가 만든다
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vgw
+  namespace: infralens-vgw
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate                # RWO PVC
+  selector:
+    matchLabels:
+      app: vgw
+  template:
+    metadata:
+      labels:
+        app: vgw
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+        sysctls:
+          - name: net.ipv4.ip_unprivileged_port_start   # 비루트로 443을 연다(컨테이너 포트도 443이어야 NetworkPolicy가 맞음)
+            value: "0"
+      initContainers:
+        - name: dirs
+          image: versity/versitygw:v1.10.0@sha256:89cad13cc981986ee284cbafea4613f9533ce6fd5f37a2c96c4c4fb8adb3a316
+          command: [mkdir, -p, /data/iam, /data/versions, /data/buckets]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - { name: data, mountPath: /data }
+      containers:
+        - name: vgw
+          image: versity/versitygw:v1.10.0@sha256:89cad13cc981986ee284cbafea4613f9533ce6fd5f37a2c96c4c4fb8adb3a316
+          args:
+            - --port
+            - ":443"
+            - --cert
+            - /tls/tls.crt
+            - --key
+            - /tls/tls.key
+            - --iam-dir
+            - /data/iam
+            - posix
+            - --versioning-dir
+            - /data/versions
+            - /data/buckets
+          envFrom:
+            - secretRef:
+                name: vgw-root
+          ports:
+            - { name: https, containerPort: 443 }
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 512Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - { name: data, mountPath: /data }
+            - { name: tls, mountPath: /tls, readOnly: true }
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: vgw-data
+        - name: tls
+          secret:
+            secretName: vgw-tls
