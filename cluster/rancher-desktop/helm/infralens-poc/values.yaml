@@ -66,6 +66,10 @@ web:
 # 게이트웨이 시작 때 Map 기본 종류 14개 + node·event·namespace를 켜 두고 끄지 않는다. 나머지는 1시간 안 보면 끈다.
 # 캐시가 idle로 꺼진 뒤 첫 응답이 빈 캐시라 개요(/kube/in-cluster)에서 워크로드가 0으로 보이던 문제를 PoC에서 피한다.
 kube:
+  # 2026-11-14 PM 승인: 정책 엔진(Kyverno) 보고서 읽기. 수집기 ClusterRole에 policyreports get·list·watch만 더함(쓰기 없음)
+  security:
+    policyReports:
+      enabled: true
   # 2026-11-11 PM 승인: Istio 접근 지도 도시 단계. PVC infralens-geoip(local-path 1Gi)에 DB-IP City Lite 2026-11(CC BY 4.0, 126,873,350B)
   istioAccess:
     geoCities:
