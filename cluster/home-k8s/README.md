@@ -212,7 +212,7 @@ sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keyc
 - 접속 `https://argocd.awx.kr`. CLI는 Gateway가 HTTP/1.1로 받으므로 `argocd login argocd.awx.kr --grpc-web`.
 - 차트 10.x 기본값으로 컴포넌트별 NetworkPolicy(Ingress)가 생깁니다. argocd-server는 모든 출처 허용, redis·repo-server·dex는 Argo CD 내부에서만 접근합니다.
 - v3.5부터 repo-server가 Helm v4로 차트를 렌더링합니다.
-- Google 로그인: OIDC 직접 연동(Dex 미사용). OAuth 클라이언트는 GCP 프로젝트 `alex-space-0001`, 동의 화면 Testing(테스트 사용자만 로그인).
+- Google 로그인: Dex 경유(2026-11-14, 직접 OIDC는 Google ID 토큰 1시간마다 재로그인). 세션 `users.session.duration` 24h. 리디렉션 URI `https://argocd.awx.kr/api/dex/callback`. OAuth 클라이언트는 GCP 프로젝트 `alex-space-0001`, 동의 화면 Testing(테스트 사용자만 로그인).
 - client secret은 레포 밖 Secret `argo-cd/argocd-oidc-google`(키 `clientSecret`, 라벨 `app.kubernetes.io/part-of=argocd`)에 둡니다.
   ```bash
   kubectl -n argo-cd create secret generic argocd-oidc-google --from-literal=clientSecret="$(jq -r .web.client_secret client_secret_*.json)"
