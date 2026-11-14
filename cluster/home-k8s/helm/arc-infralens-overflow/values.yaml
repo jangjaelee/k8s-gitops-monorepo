@@ -1,0 +1,193 @@
+# chart: actions-runner-controller-charts/gha-runner-scale-set 0.15.0 (ARC 0.15.0, OCI ghcr.io/actions/actions-runner-controller-charts)  (Argo CD app: argocd/applications/arc-infralens-overflow.yaml)
+# 무거운 잡 넘침 러너(2026-11-15 PM 승인, 무게별 분리 4단계). 04~07이 밀릴 때만 02·03에 노드당 1개, 가벼운 러너 위에 더한다.
+# 평소 maxRunners 0. manifests/arc-overflow-toggle CronJob(1분)이 arc-infralens Pending 러너가 있으면 2, 없고 넘침 러너가 잡을 안 돌면 0으로 바꾼다.
+# 한계: 켜져 있는 동안은 04~07에 자리가 나도 새 무거운 잡이 이 세트로 갈 수 있다(GitHub가 고름). 돌던 잡은 0으로 바꿔도 끝까지 간다.
+githubConfigUrl: https://github.com/jangjaelee/infralens
+githubConfigSecret: arc-infralens-github-app   # GitHub App 자격 증명 Secret(manifests/arc-infralens/external-secret.yaml)
+runnerScaleSetName: arc-infralens-overflow
+# 무거운 세트와 같은 라벨: runs-on: arc-infralens 잡을 이 세트도 받는다(어느 세트가 받을지는 GitHub가 정함)
+scaleSetLabels: [arc-infralens]
+
+minRunners: 0
+# 러너 Pod 하나가 requests 5 CPU·4.5Gi를 쓴다(runner 4 CPU·4Gi + dind 1 CPU·512Mi, 아래 template).
+# limits는 메모리 9Gi(runner 8Gi + dind 1Gi), 디스크 emptyDir 최대 60Gi(work 20Gi + dind-storage 40Gi).
+# 수용(2026-10-30): worker-node-04 4개(CPU 기준, 3.5×4=14 / 16), worker-node-05 8개(메모리 기준),
+# worker-node-06 1개(2026-11-03: 2개일 때 e2e가 CPU 포화로 30분 초과 2회 → 라벨 awx.kr/runner-overflow=worker-node-06을 붙여 아래 anti-affinity로 1개 제한), 넘침 노드 worker-node-02·03 각 1개 = 15개(maxRunners 15). worker-node-05는 평상시 전원 끔이라 평소 7개(2026-11-03: 01을 빼고 03을 넣음, 05를 켜지 않기로 해서 켜진 노드로 채움)(2026-11-02 합의안). 2026-10-29 runner CPU 2→2.5: 몰릴 때 node-04가 CPU 포화(PSI cpu avg10 71%, load 50)라 5→4개로 줄임. worker-node-01은 PoC DB와 같은 디스크라 넘침에서 뺐다(2026-11-03). worker-node-03은 디스크 여유가 약 50G라 큰 빌드 때 디스크 부족에 주의한다.
+# 2026-11-09: runner CPU 2.5→4로 worker-node-04 4→3개 → 04 3 + 06 1 + 02·03 각 1 = 6개 동시. maxRunners 7은 그대로(7번째는 자리 날 때까지 대기)
+# 2026-11-07: worker-node-05 폐기(전력 과다, PM) → 05 몫 8개를 빼고 04 4 + 06 1 + 02·03 각 1 = 7개. 01은 넘침에 넣지 않음(PoC DB 디스크)
+# 2026-11-10: 새 worker-node-05(192.168.50.117, Inspiron 5590 i7-10510U 8스레드·19Gi, nvme 238G, Wi-Fi) join, 넘침 라벨로 1개 → 04 3 + 05 1 + 06 1 + 02·03 각 1 = 7개 동시, maxRunners 8(PM 결정)
+# 2026-11-14: worker-node-07(192.168.50.116, Acer A515-52 i5-8265U 8스레드·15Gi, Wi-Fi) join, 넘침 라벨로 1개 → 04 3 + 05·06·07 각 1 + 02·03 각 1 = 8개 동시, maxRunners 9(PM 결정, 01은 PoC 메모리 위험으로 보류)
+maxRunners: 0               # 평소 0. CronJob arc-overflow-toggle이 무거운 대기를 보고 0↔2로 바꾼다(Argo ignoreDifferences)
+
+# Argo CD는 helm lookup을 못 하므로 컨트롤러 ServiceAccount를 직접 적는다(helm/arc-controller/values.yaml, release arc)
+controllerServiceAccount:
+  namespace: arc-systems
+  name: arc-gha-rs-controller
+
+listenerTemplate:
+  spec:
+    containers:
+      - name: listener
+        resources:
+          requests:
+            cpu: 20m
+            memory: 64Mi
+          limits:
+            memory: 256Mi
+
+# containerMode를 쓰지 않고 dind 구성을 직접 적는다(차트의 dind 모드는 docker:dind 태그·리소스를 바꿀 수 없다).
+# 구조는 차트 dind 모드와 같다: externals 복사 init → dind 네이티브 사이드카 → runner
+template:
+  spec:
+    automountServiceAccountToken: false   # 러너에 클러스터 API 자격 증명을 주지 않는다(SA도 권한 없는 gha-rs-no-permission)
+    # CI 전용 노드(worker-node-04·05·06, taint dedicated=ci:NoSchedule, 라벨 node-role.kubernetes.io/ci)를 먼저 채우고,
+    # 넘치면 라벨 awx.kr/runner-overflow=<노드 이름>이 붙은 일반 노드(지금 worker-node-02·03)에 노드당 1개까지만 띄운다.
+    # worker-node-06(8코어)에도 이 라벨을 붙여 1개로 제한한다(2026-11-03).
+    # taint·라벨은 kubectl로 붙인다(README "CI 전용 노드").
+    # 서비스보다 낮은 우선순위(manifests/arc-infralens/priorityclass.yaml, preemptionPolicy Never): 러너는 남을 밀지 않고,
+    # 자리가 모자라면 서비스 Pod가 러너를 밀어낼 수 있다(그때 그 CI 잡은 실패).
+    priorityClassName: ci-runner-low
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: awx.kr/runner-light       # worker-node-02·03 (가벼운 러너 위에 더해 노드당 1개)
+                  operator: Exists
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                actions.github.com/scale-set-name: arc-infralens-overflow
+            topologyKey: kubernetes.io/hostname
+    initContainers:
+      # Go·Playwright 캐시 hostPath(아래 go-cache·playwright-cache)는 root 소유로 만들어지므로 러너 사용자가 쓸 수 있게 디렉터리만 넘긴다(캐시 내용은 재귀로 건드리지 않는다)
+      - name: init-go-cache
+        image: &runnerImage ghcr.io/jangjaelee/arc-runner:2.338.2-f766c44@sha256:2f8425c98e09fb8faf70f1a7576ca689f955713f489f71f1888a266ec04b08ef
+        command: ["sh", "-c", "mkdir -p /ci-cache/go/mod /ci-cache/go/build /ci-cache/ms-playwright && chown \"$(id -u runner):$(id -g runner)\" /ci-cache/go /ci-cache/go/mod /ci-cache/go/build /ci-cache/ms-playwright"]
+        securityContext:
+          runAsUser: 0
+        resources:
+          requests:
+            cpu: 10m
+            memory: 16Mi
+          limits:
+            memory: 64Mi
+        volumeMounts:
+          - name: go-cache
+            mountPath: /ci-cache/go
+          - name: playwright-cache
+            mountPath: /ci-cache/ms-playwright
+      - name: init-dind-externals
+        image: *runnerImage
+        command: ["cp"]
+        args: ["-r", "/home/runner/externals/.", "/home/runner/tmpDir/"]
+        # 복사 중 페이지 캐시가 cgroup 메모리로 잡혀 256Mi에서 cp가 OOM으로 죽었다(worker-node-05, 2026-10-28 4건) → limit 512Mi
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            memory: 512Mi
+        volumeMounts:
+          - name: dind-externals
+            mountPath: /home/runner/tmpDir
+      - name: dind
+        image: docker.io/library/docker:29.9.1-dind@sha256:3e5756e2b6dad6a5f1f5deacf0a19f9eaa2581b76ae092b2d4a118162e1d4d4e
+        restartPolicy: Always           # 네이티브 사이드카: runner가 끝나면 함께 종료
+        args:
+          - dockerd
+          - --host=unix:///var/run/docker.sock
+          - --group=$(DOCKER_GROUP_GID)
+          # Docker Hub 받기를 ci-cache 미러로(manifests/ci-cache). HTTP라 insecure로도 등록한다. 미러가 실패하면 dockerd가 Docker Hub로 바로 간다.
+          # buildx docker-container 드라이버(buildkitd)는 이 설정을 쓰지 않으므로 워크플로가 아래 runner env로 buildkitd 설정을 만든다
+          - --registry-mirror=http://registry-mirror.ci-cache.svc.cluster.local:5000
+          - --insecure-registry=registry-mirror.ci-cache.svc.cluster.local:5000
+          - --insecure-registry=build-cache.ci-cache.svc.cluster.local:5000
+        env:
+          - name: DOCKER_GROUP_GID
+            value: "123"                # 러너 이미지의 docker 그룹
+        securityContext:
+          privileged: true
+        startupProbe:
+          exec:
+            command: ["docker", "info"]
+          failureThreshold: 24
+          periodSeconds: 5
+        # 메모리: 4.5일 실사용 최대 491Mi(2026-10-27) → request 2Gi→512Mi, limit 4Gi→1Gi(약 2배 여유). 이미지 빌드가 여기서 돈다
+        resources:
+          requests:
+            cpu: 250m
+            memory: 128Mi
+          limits:
+            memory: 1Gi
+        volumeMounts:
+          - name: work
+            mountPath: /home/runner/_work
+          - name: dind-sock
+            mountPath: /var/run
+          - name: dind-externals
+            mountPath: /home/runner/externals
+          - name: dind-storage
+            mountPath: /var/lib/docker
+    containers:
+      - name: runner
+        image: *runnerImage
+        command: ["/home/runner/run.sh"]
+        env:
+          - name: DOCKER_HOST
+            value: unix:///var/run/docker.sock
+          - name: RUNNER_WAIT_FOR_DOCKER_IN_SECONDS
+            value: "120"
+          # Go 모듈·빌드 캐시를 노드 디스크에 둔다. 워크플로는 INFRALENS_CI_LOCAL_GO_CACHE=1이면 setup-go 캐시(Actions 캐시 608 MiB 받기)를 끈다
+          - name: GOMODCACHE
+            value: /ci-cache/go/mod
+          - name: GOCACHE
+            value: /ci-cache/go/build
+          - name: INFRALENS_CI_LOCAL_GO_CACHE
+            value: "1"
+          # Playwright 브라우저를 노드 디스크에 둔다(npx playwright install이 이미 있는 버전은 건너뜀). e2e 잡이 20분 timeout에 걸리던 설치 시간을 줄인다
+          - name: PLAYWRIGHT_BROWSERS_PATH
+            value: /ci-cache/ms-playwright
+          # ci-cache 레지스트리 주소(host:port, HTTP). 워크플로가 buildkitd 미러 설정과 --cache-to/--cache-from type=registry에 쓴다
+          - name: INFRALENS_CI_DOCKERHUB_MIRROR
+            value: registry-mirror.ci-cache.svc.cluster.local:5000
+          - name: INFRALENS_CI_BUILD_CACHE
+            value: build-cache.ci-cache.svc.cluster.local:5000
+        resources:
+          requests:
+            cpu: 2750m          # runner+dind 합 3코어(PM 결정 11-15, 넘침은 3 이하)
+            memory: 4Gi
+          limits:
+            memory: 8Gi         # 무거운 잡과 같음(e2e 실측 최대 4.9Gi)
+        volumeMounts:
+          - name: work
+            mountPath: /home/runner/_work
+          - name: dind-sock
+            mountPath: /var/run
+          - name: go-cache
+            mountPath: /ci-cache/go
+          - name: playwright-cache
+            mountPath: /ci-cache/ms-playwright
+    volumes:
+      # 노드별 Go 캐시. 일반 워커로 넘친 러너는 그 노드의 (처음엔 빈) 캐시를 쓴다. 여러 러너가 동시에 써도 Go가 잠금을 건다.
+      # 잡 사이에 남으므로 InfraLens 저장소를 공개로 바꾸기 전에 이 스케일 셋과 함께 없앤다(위 4행). 비우려면 노드에서 이 디렉터리를 지운다.
+      - name: go-cache
+        hostPath:
+          path: /var/lib/ci-cache/go
+          type: DirectoryOrCreate
+      # 브라우저 버전마다 약 0.5~1GB. 자동 정리는 없다(오래된 버전 디렉터리는 수동 정리, 점검 때 크기 확인)
+      - name: playwright-cache
+        hostPath:
+          path: /var/lib/ci-cache/ms-playwright
+          type: DirectoryOrCreate
+      - name: work
+        emptyDir:
+          sizeLimit: 20Gi
+      - name: dind-sock
+        emptyDir: {}
+      - name: dind-externals
+        emptyDir: {}
+      - name: dind-storage              # 이미지·빌드 캐시. 러너가 지워지면 함께 사라진다
+        emptyDir:
+          sizeLimit: 40Gi
