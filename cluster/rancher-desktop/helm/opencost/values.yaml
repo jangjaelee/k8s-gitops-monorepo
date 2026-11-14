@@ -1,0 +1,15 @@
+# OpenCost (M10 FinOps 개발 확인용, PM 승인 11-14). 기본 단가만, 클라우드 청구 연동·자격 증명 없음. ClusterIP만.
+opencost:
+  exporter:
+    defaultClusterId: rancher-desktop
+  prometheus:
+    internal:
+      enabled: true
+      serviceName: kube-prometheus-stack-prometheus
+      namespaceName: prometheus-operator
+      port: 9090
+  metrics:
+    serviceMonitor:
+      enabled: true
+service:
+  type: ClusterIP
