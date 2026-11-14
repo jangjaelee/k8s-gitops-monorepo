@@ -41,9 +41,11 @@ metadata:
 rules:
   - apiGroups: [metrics.k8s.io]
     resources: [nodes]
+    resourceNames: [worker-node-02, worker-node-03]
     verbs: [get]
   - apiGroups: [""]
     resources: [nodes]
+    resourceNames: [worker-node-02, worker-node-03]
     verbs: [get]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -79,6 +81,9 @@ spec:
             runAsNonRoot: true
             runAsUser: 65534
             seccompProfile: { type: RuntimeDefault }
+          volumes:
+            - name: tmp
+              emptyDir: { sizeLimit: 64Mi }
           containers:
             - name: toggle
               image: docker.io/alpine/k8s:1.36.6@sha256:e2d95501b5718673ba67693154fabe6c618dbe1211a32947d6d5cf16285e019b
@@ -89,19 +94,25 @@ spec:
               resources:
                 requests: { cpu: 10m, memory: 32Mi }
                 limits: { memory: 128Mi }
+              env:
+                - { name: HOME, value: /tmp }     # kubectl 캐시(루트 FS 읽기 전용)
+              volumeMounts:
+                - { name: tmp, mountPath: /tmp }
               command: ["/bin/sh", "-c"]
               args:
                 - |
                   set -eu
                   NS=arc-runners
-                  pending=$(kubectl -n $NS get pods -l actions.github.com/scale-set-name=arc-infralens --field-selector=status.phase=Pending -o name | wc -l)
+                  # 노드에 배치되지 못한 러너만 센다(PodScheduled=False). 막 뜨는 중인 Pod는 빼기
+                  pending=$(kubectl -n $NS get pods -l actions.github.com/scale-set-name=arc-infralens --field-selector=status.phase=Pending -o jsonpath='{range .items[*]}{range .status.conditions[?(@.type=="PodScheduled")]}{.status}{"\n"}{end}{end}' | grep -c False || true)
                   busy=$(kubectl -n $NS get ephemeralrunners -l actions.github.com/scale-set-name=arc-infralens-overflow -o jsonpath='{range .items[*]}{.status.jobRepository}{"\n"}{end}' | grep -c . || true)
                   cur=$(kubectl -n $NS get autoscalingrunnerset arc-infralens-overflow -o jsonpath='{.spec.maxRunners}')
                   hot=0
                   for n in worker-node-02 worker-node-03; do
                     u=$(kubectl get --raw /apis/metrics.k8s.io/v1beta1/nodes/$n | sed -n 's/.*"cpu":"\([0-9]*\)n".*/\1/p')
                     a=$(kubectl get node $n -o jsonpath='{.status.allocatable.cpu}')
-                    p=$(( ${u:-0} / 10000000 / ${a%m} ))
+                    case "$a" in *m) am=${a%m} ;; *) am=$(( a * 1000 )) ;; esac   # 밀리코어로 맞춤
+                    p=$(( ${u:-0} / 10000 / am ))
                     [ "$p" -ge 70 ] && hot=$((hot+1))
                   done
                   want=$cur
