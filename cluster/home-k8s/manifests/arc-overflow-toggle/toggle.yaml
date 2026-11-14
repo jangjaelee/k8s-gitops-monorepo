@@ -1,0 +1,126 @@
+# 무거운 잡 넘침 토글(2026-11-15 PM 승인). 1분마다:
+#  - arc-infralens 러너 Pod 중 Pending이 있고 02·03 CPU 사용이 70% 미만이면 arc-infralens-overflow maxRunners=2
+#  - Pending이 없고 넘침 러너가 잡을 안 돌면(EphemeralRunner에 jobRepository 없음) 0
+# 권한: arc-runners의 pods·ephemeralrunners 읽기, 그 ARS 하나 patch, 노드 지표(metrics.k8s.io nodes) 읽기
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: arc-overflow-toggle
+  namespace: arc-runners
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: arc-overflow-toggle
+  namespace: arc-runners
+rules:
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [list]
+  - apiGroups: [actions.github.com]
+    resources: [ephemeralrunners]
+    verbs: [list]
+  - apiGroups: [actions.github.com]
+    resources: [autoscalingrunnersets]
+    resourceNames: [arc-infralens-overflow]
+    verbs: [get, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: arc-overflow-toggle
+  namespace: arc-runners
+roleRef: { apiGroup: rbac.authorization.k8s.io, kind: Role, name: arc-overflow-toggle }
+subjects:
+  - { kind: ServiceAccount, name: arc-overflow-toggle, namespace: arc-runners }
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: arc-overflow-toggle-nodes
+rules:
+  - apiGroups: [metrics.k8s.io]
+    resources: [nodes]
+    verbs: [get]
+  - apiGroups: [""]
+    resources: [nodes]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: arc-overflow-toggle-nodes
+roleRef: { apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: arc-overflow-toggle-nodes }
+subjects:
+  - { kind: ServiceAccount, name: arc-overflow-toggle, namespace: arc-runners }
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: arc-overflow-toggle
+  namespace: arc-runners
+spec:
+  schedule: "* * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 50
+      ttlSecondsAfterFinished: 300
+      template:
+        metadata:
+          labels: { app: arc-overflow-toggle }
+        spec:
+          serviceAccountName: arc-overflow-toggle
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            seccompProfile: { type: RuntimeDefault }
+          containers:
+            - name: toggle
+              image: docker.io/alpine/k8s:1.36.6@sha256:e2d95501b5718673ba67693154fabe6c618dbe1211a32947d6d5cf16285e019b
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: [ALL] }
+              resources:
+                requests: { cpu: 10m, memory: 32Mi }
+                limits: { memory: 128Mi }
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  NS=arc-runners
+                  pending=$(kubectl -n $NS get pods -l actions.github.com/scale-set-name=arc-infralens --field-selector=status.phase=Pending -o name | wc -l)
+                  busy=$(kubectl -n $NS get ephemeralrunners -l actions.github.com/scale-set-name=arc-infralens-overflow -o jsonpath='{range .items[*]}{.status.jobRepository}{"\n"}{end}' | grep -c . || true)
+                  cur=$(kubectl -n $NS get autoscalingrunnerset arc-infralens-overflow -o jsonpath='{.spec.maxRunners}')
+                  hot=0
+                  for n in worker-node-02 worker-node-03; do
+                    u=$(kubectl get --raw /apis/metrics.k8s.io/v1beta1/nodes/$n | sed -n 's/.*"cpu":"\([0-9]*\)n".*/\1/p')
+                    a=$(kubectl get node $n -o jsonpath='{.status.allocatable.cpu}')
+                    p=$(( ${u:-0} / 10000000 / ${a%m} ))
+                    [ "$p" -ge 70 ] && hot=$((hot+1))
+                  done
+                  want=$cur
+                  if [ "$pending" -gt 0 ] && [ "$hot" -lt 2 ]; then want=2
+                  elif [ "$pending" -eq 0 ] && [ "$busy" -eq 0 ]; then want=0; fi
+                  echo "pending=$pending busy=$busy hot=$hot cur=$cur want=$want"
+                  [ "$want" != "$cur" ] && kubectl -n $NS patch autoscalingrunnerset arc-infralens-overflow --type=merge -p "{\"spec\":{\"maxRunners\":$want}}"
+                  exit 0
+---
+# arc-runners의 NetworkPolicy(manifests/arc-infralens)는 API 서버로 못 나가게 막는다. 이 Pod만 kube-apiserver를 더 연다(정책은 더해짐)
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: arc-overflow-toggle-apiserver
+  namespace: arc-runners
+spec:
+  endpointSelector:
+    matchLabels: { app: arc-overflow-toggle }
+  egress:
+    - toEntities: [kube-apiserver]
+      toPorts:
+        - ports: [{ port: "6443", protocol: TCP }]
