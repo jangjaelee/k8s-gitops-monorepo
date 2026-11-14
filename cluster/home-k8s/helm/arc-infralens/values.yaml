@@ -15,7 +15,8 @@ minRunners: 0
 # 2026-11-07: worker-node-05 폐기(전력 과다, PM) → 05 몫 8개를 빼고 04 4 + 06 1 + 02·03 각 1 = 7개. 01은 넘침에 넣지 않음(PoC DB 디스크)
 # 2026-11-10: 새 worker-node-05(192.168.50.117, Inspiron 5590 i7-10510U 8스레드·19Gi, nvme 238G, Wi-Fi) join, 넘침 라벨로 1개 → 04 3 + 05 1 + 06 1 + 02·03 각 1 = 7개 동시, maxRunners 8(PM 결정)
 # 2026-11-14: worker-node-07(192.168.50.116, Acer A515-52 i5-8265U 8스레드·15Gi, Wi-Fi) join, 넘침 라벨로 1개 → 04 3 + 05·06·07 각 1 + 02·03 각 1 = 8개 동시, maxRunners 9(PM 결정, 01은 PoC 메모리 위험으로 보류)
-maxRunners: 9
+# 2026-11-15 무게별 분리 3단계(PM 승인): 02·03 넘침 라벨을 떼고 04~07 전용 → 04 3 + 05·06·07 각 1 = 6개, maxRunners 6. 가벼운 잡은 arc-infralens-light(02·03)
+maxRunners: 6
 
 # Argo CD는 helm lookup을 못 하므로 컨트롤러 ServiceAccount를 직접 적는다(helm/arc-controller/values.yaml, release arc)
 controllerServiceAccount:
