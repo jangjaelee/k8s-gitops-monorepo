@@ -95,6 +95,10 @@ kube:
   argoRollouts:
     enabled: true
   gateway:
+    # (11-15 PM 승인) EKS 2개 추가 뒤 1Gi OOMKilled 반복 → 3Gi
+    resources:
+      requests: { cpu: 50m, memory: 512Mi }
+      limits: { memory: 3Gi }
     podLabels:
       sidecar.istio.io/inject: "true"
     podAnnotations:
