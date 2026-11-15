@@ -66,6 +66,9 @@ web:
 # 게이트웨이 시작 때 Map 기본 종류 14개 + node·event·namespace를 켜 두고 끄지 않는다. 나머지는 1시간 안 보면 끈다.
 # 캐시가 idle로 꺼진 뒤 첫 응답이 빈 캐시라 개요(/kube/in-cluster)에서 워크로드가 0으로 보이던 문제를 PoC에서 피한다.
 kube:
+  # 2026-11-15 PM 요청: GitOps 앱 보기(Argo CD 원하는 상태 읽기만, 수집기 ClusterRole에 applications get·list·watch)
+  gitops:
+    enabled: true
   # 터미널 녹화(ADR-0027, 내장 Valkey 함께 설치, PM 11-14)
   exec:
     recording:
