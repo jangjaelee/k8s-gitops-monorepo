@@ -69,6 +69,9 @@ jobs:
             docker --version; docker buildx version
             tar --version | sed -n 1p; unzip -v | sed -n 1p; zstd --version; xz --version | sed -n 1p
             gcc --version | sed -n 1p; make --version | sed -n 1p; file --version | sed -n 1p
+            # 미리 넣은 Go(setup-go가 내려받지 않게): 도구 캐시 경로·완료 표시·runner 쓰기 권한
+            test "$RUNNER_TOOL_CACHE" = /opt/hostedtoolcache && test -w /opt/hostedtoolcache/go
+            ls /opt/hostedtoolcache/go/*/x64.complete; /opt/hostedtoolcache/go/*/x64/bin/go version
             # Playwright Chromium 의존 패키지(Dockerfile 목록)가 모두 깔렸는지
             for p in xvfb fonts-noto-color-emoji libnss3 libgbm1 libasound2t64 libatk-bridge2.0-0t64 libcups2t64 libxkbcommon0; do dpkg -s "$p" >/dev/null; done; echo "playwright deps ok"'
       - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
