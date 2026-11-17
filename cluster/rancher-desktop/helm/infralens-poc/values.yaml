@@ -71,6 +71,9 @@ kube:
     enabled: true
   # 터미널 녹화(ADR-0027, 내장 Valkey 함께 설치, PM 11-14)
   exec:
+    # 2026-11-17 PM 지시: in-cluster default 네임스페이스 Pod 터미널 허용(RoleBinding, default만)
+    enabled: true
+    namespaces: [default]
     recording:
       enabled: true
   # 2026-11-14 PM 승인: 정책 엔진(Kyverno) 보고서 읽기. 수집기 ClusterRole에 policyreports get·list·watch만 더함(쓰기 없음)
