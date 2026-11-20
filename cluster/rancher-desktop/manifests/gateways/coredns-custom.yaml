@@ -12,3 +12,10 @@ data:
   awx.override: |
     rewrite name exact argocd.awx.kr istio-gateway-istio.istio-system.svc.cluster.local
     rewrite name exact infralens.awx.kr istio-gateway-istio.istio-system.svc.cluster.local
+  # AAAA(IPv6) 질의는 바깥에 묻지 않고 바로 빈 답(NOERROR·답 없음)을 준다.
+  # Rancher Desktop VM 호스트 리졸버(192.168.5.2)가 맥 네트워크(SASE 터널 등)가 바뀐 뒤 AAAA에 답하지 않아
+  # Pod의 A+AAAA 동시 질의가 약 5초 뒤 실패하던 문제(STS AssumeRole 시간 초과)를 막는다. 이 클러스터는 IPv4 전용.
+  no-aaaa.override: |
+    template IN AAAA . {
+      rcode NOERROR
+    }
