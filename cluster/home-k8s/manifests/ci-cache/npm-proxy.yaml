@@ -33,6 +33,10 @@ data:
         publish: nobody
         unpublish: nobody
         proxy: npmjs
+    # npm audit 요청(/-/npm/v1/security/*)을 npmjs로 넘긴다(Verdaccio 내장 audit 미들웨어). 없으면 npm audit이 실패한다(11-22)
+    middlewares:
+      audit:
+        enabled: true
     log:
       type: stdout
       format: pretty
@@ -59,7 +63,7 @@ spec:
         app.kubernetes.io/name: npm-proxy
         app.kubernetes.io/part-of: ci-cache
       annotations:
-        ci-cache/config-rev: "1"        # npm-proxy-config를 바꾸면 올린다(롤링 재시작)
+        ci-cache/config-rev: "2"        # npm-proxy-config를 바꾸면 올린다(롤링 재시작)
     spec:
       automountServiceAccountToken: false
       nodeSelector:
