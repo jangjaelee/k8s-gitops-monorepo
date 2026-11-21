@@ -54,10 +54,10 @@ template:
                 actions.github.com/scale-set-name: arc-infralens-overflow
             topologyKey: kubernetes.io/hostname
     initContainers:
-      # Go·Playwright 캐시 hostPath(아래 go-cache·playwright-cache)는 root 소유로 만들어지므로 러너 사용자가 쓸 수 있게 디렉터리만 넘긴다(캐시 내용은 재귀로 건드리지 않는다)
+      # Go·npm·툴체인·Playwright 캐시 hostPath(아래 go-cache·npm-cache·toolcache·playwright-cache)는 root 소유로 만들어지므로 러너 사용자가 쓸 수 있게 디렉터리만 넘긴다(캐시 내용은 재귀로 건드리지 않는다)
       - name: init-go-cache
         image: &runnerImage ghcr.io/jangjaelee/arc-runner:2.338.2-367ec22@sha256:c0bf0484d7fda2cc1e117ca0ef8612114658381d30e38af9859fa12dc081041c
-        command: ["sh", "-c", "mkdir -p /ci-cache/go/mod /ci-cache/go/build /ci-cache/ms-playwright && chown \"$(id -u runner):$(id -g runner)\" /ci-cache/go /ci-cache/go/mod /ci-cache/go/build /ci-cache/ms-playwright"]
+        command: ["sh", "-c", "mkdir -p /ci-cache/go/mod /ci-cache/go/build /ci-cache/ms-playwright /ci-cache/npm /ci-cache/toolcache && chown \"$(id -u runner):$(id -g runner)\" /ci-cache/go /ci-cache/go/mod /ci-cache/go/build /ci-cache/ms-playwright /ci-cache/npm /ci-cache/toolcache"]
         securityContext:
           runAsUser: 0
         resources:
@@ -71,6 +71,10 @@ template:
             mountPath: /ci-cache/go
           - name: playwright-cache
             mountPath: /ci-cache/ms-playwright
+          - name: npm-cache
+            mountPath: /ci-cache/npm
+          - name: toolcache
+            mountPath: /ci-cache/toolcache
       - name: init-dind-externals
         image: *runnerImage
         command: ["cp"]
@@ -97,6 +101,8 @@ template:
           - --registry-mirror=http://registry-mirror.ci-cache.svc.cluster.local:5000
           - --insecure-registry=registry-mirror.ci-cache.svc.cluster.local:5000
           - --insecure-registry=build-cache.ci-cache.svc.cluster.local:5000
+          # GHCR 받기 미러. --registry-mirror는 Docker Hub 전용이라 워크플로가 INFRALENS_CI_GHCR_MIRROR 주소로 직접 pull한다(HTTP라 insecure)
+          - --insecure-registry=ghcr-mirror.ci-cache.svc.cluster.local:5000
         env:
           - name: DOCKER_GROUP_GID
             value: "123"                # 러너 이미지의 docker 그룹
@@ -147,6 +153,15 @@ template:
             value: registry-mirror.ci-cache.svc.cluster.local:5000
           - name: INFRALENS_CI_BUILD_CACHE
             value: build-cache.ci-cache.svc.cluster.local:5000
+          # GHCR 공개 이미지 받기 미러(manifests/ci-cache/ghcr-mirror.yaml). 워크플로가 ghcr.io 대신 이 주소로 pull하고, 실패하면 ghcr.io로 바로 간다
+          - name: INFRALENS_CI_GHCR_MIRROR
+            value: ghcr-mirror.ci-cache.svc.cluster.local:5000
+          # npm 패키지는 ci-cache npm 프록시(Verdaccio, manifests/ci-cache/npm-proxy.yaml)로 받고 npm 캐시는 노드 디스크에 둔다.
+          # 프록시가 죽어 npm install이 실패하면 워크플로 단계에서 npm_config_registry를 비워 npmjs로 바로 간다
+          - name: npm_config_registry
+            value: http://npm-proxy.ci-cache.svc.cluster.local:4873/
+          - name: npm_config_cache
+            value: /ci-cache/npm
         resources:
           requests:
             cpu: 2750m          # runner+dind 합 3코어(PM 결정 11-15, 넘침은 3 이하)
@@ -162,6 +177,12 @@ template:
             mountPath: /ci-cache/go
           - name: playwright-cache
             mountPath: /ci-cache/ms-playwright
+          - name: npm-cache
+            mountPath: /ci-cache/npm
+          # 툴체인(setup-go·setup-node)이 받는 Go·Node. 러너가 RUNNER_TOOL_CACHE를 작업 디렉터리 아래 _tool로 정하므로 env 대신 그 경로에 마운트한다
+          # (work emptyDir 안 하위 마운트라 잡이 끝나도 노드 디스크에 남는다)
+          - name: toolcache
+            mountPath: /home/runner/_work/_tool
     volumes:
       # 노드별 Go 캐시. 일반 워커로 넘친 러너는 그 노드의 (처음엔 빈) 캐시를 쓴다. 여러 러너가 동시에 써도 Go가 잠금을 건다.
       # 잡 사이에 남으므로 InfraLens 저장소를 공개로 바꾸기 전에 이 스케일 셋과 함께 없앤다(위 4행). 비우려면 노드에서 이 디렉터리를 지운다.
@@ -173,6 +194,16 @@ template:
       - name: playwright-cache
         hostPath:
           path: /var/lib/ci-cache/ms-playwright
+          type: DirectoryOrCreate
+      # npm 다운로드 캐시(_cacache). 노드별, 자동 정리 없음(필요하면 노드에서 디렉터리를 지운다)
+      - name: npm-cache
+        hostPath:
+          path: /var/lib/ci-cache/npm
+          type: DirectoryOrCreate
+      # setup-go·setup-node 툴체인 캐시(Go·Node 판마다 수십~수백 MB). 자동 정리 없음, 오래된 판은 수동 정리
+      - name: toolcache
+        hostPath:
+          path: /var/lib/ci-cache/toolcache
           type: DirectoryOrCreate
       - name: work
         emptyDir:

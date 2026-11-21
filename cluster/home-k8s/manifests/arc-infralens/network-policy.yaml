@@ -32,7 +32,7 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
-    # ci-cache의 Docker Hub 미러·BuildKit 캐시 레지스트리(manifests/ci-cache). 저장소는 worker-node-04지만 어느 노드의 러너든 Service로 닿는다
+    # ci-cache의 Docker Hub·GHCR 미러, BuildKit 캐시 레지스트리(5000), npm 프록시(4873)(manifests/ci-cache). 저장소는 worker-node-04지만 어느 노드의 러너든 Service로 닿는다
     - to:
         - namespaceSelector:
             matchLabels:
@@ -40,6 +40,8 @@ spec:
       ports:
         - protocol: TCP
           port: 5000
+        - protocol: TCP
+          port: 4873
     # github.com, ghcr.io, Docker Hub, proxy.golang.org, registry.npmjs.org, Actions 캐시(Azure Blob) 등
     - to:
         - ipBlock:
