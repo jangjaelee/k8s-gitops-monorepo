@@ -370,6 +370,8 @@ kubectl label node worker-node-04 node-role.kubernetes.io/ci=
 kubectl label node worker-node-05 node-role.kubernetes.io/ci= node-role.kubernetes.io/worker= awx.kr/runner-overflow=worker-node-05
 kubectl label node worker-node-07 node-role.kubernetes.io/ci= node-role.kubernetes.io/worker= awx.kr/runner-overflow=worker-node-07  # 2026-11-14, 192.168.50.116 i5-8265U 8스레드·15Gi
 kubectl label node worker-node-06 node-role.kubernetes.io/ci= node-role.kubernetes.io/worker=
+kubectl taint node worker-node-08 dedicated=ci:NoSchedule  # 2026-11-23, 192.168.50.119 kyj 인텔 맥(i9-9980HK) 위 lima Ubuntu 24.04 VM 12 vCPU·24GB, 유선 브리지(en7). 넘침 라벨 없음 → 러너 2개
+kubectl label node worker-node-08 node-role.kubernetes.io/ci= node-role.kubernetes.io/worker=
 # 넘침 노드(러너 노드당 1개). 값은 노드마다 달라야 한다. 넣기 전에 메모리 여유(allocatable − 서비스 requests·실사용) ≥ 5Gi,
 # 디스크 여유(kubelet 축출 기준을 뺀 값) ≥ 60Gi인지 본다. 서비스에 영향이 보이면 바로 뗀다(`awx.kr/runner-overflow-`)
 kubectl label node worker-node-02 awx.kr/runner-overflow=worker-node-02
