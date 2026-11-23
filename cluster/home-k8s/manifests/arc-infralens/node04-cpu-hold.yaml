@@ -1,0 +1,49 @@
+# worker-node-04 무거운 러너 3→2개 제한(2026-11-24 PM 승인). 러너 3개가 동시에 바쁘면 CPU 상한이 없어 16스레드를 넘겨 쓰고
+# (부하 27), 같은 노드 e2e가 webServer 120s 시간 초과로 실패했다. 아무 일도 안 하는 pause Pod로 04의 CPU 요청 5코어를 미리 잡아
+# 러너(요청 5코어)가 04에 2개까지만 들어가게 한다. 빠진 1자리는 05·06·07로 간다(maxRunners 9 그대로).
+# preemptionPolicy Never: 이 Pod는 돌고 있는 러너를 밀어내지 않고, 러너가 끝나 자리가 나면 들어간다. 러너는 이 Pod를 밀지 못한다(-100 < 0).
+# 되돌리기: 이 파일 삭제 PR.
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: ci-cpu-hold
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+value: 0
+globalDefault: false
+preemptionPolicy: Never
+description: "CI 노드 CPU 자리 잡기용 pause Pod. 러너(-100)보다 높고 아무도 밀어내지 않는다."
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: node04-cpu-hold
+  namespace: arc-runners
+  labels: { app: node04-cpu-hold }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: node04-cpu-hold } }
+  template:
+    metadata:
+      labels: { app: node04-cpu-hold }
+    spec:
+      priorityClassName: ci-cpu-hold
+      automountServiceAccountToken: false
+      nodeSelector:
+        kubernetes.io/hostname: worker-node-04
+      tolerations:
+        - { key: dedicated, operator: Equal, value: ci, effect: NoSchedule }
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65535
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: pause
+          image: registry.k8s.io/pause:3.10
+          resources:
+            requests: { cpu: "5", memory: 16Mi }
+            limits: { memory: 32Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
