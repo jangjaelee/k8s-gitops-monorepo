@@ -205,6 +205,7 @@ template:
             cpu: "4"            # 빌드·테스트가 여기서 돈다(실사용 최대 5.5코어). 2026-10-21 1→2, 2026-10-29 2→2.5(node-04 러너 5→4), 2026-11-09 2.5→4(node-04 러너 4→3: 4개일 때 CPU 100%로 시험 120초 초과)
             memory: 4Gi         # 2026-10-28 2Gi→3Gi, 2026-11-09 3Gi→4Gi
           limits:
+            cpu: "7"            # 2026-11-24 PM 승인: 같은 노드 러너끼리 CPU 다툼으로 vitest 속도가 2배 넘게 흔들려 상한 7(04 16스레드에 2개가 겹쳐도 넘지 않음, 혼자 돌 땐 거의 제한 없음)
             memory: 8Gi         # 2026-10-29 4Gi→6Gi: web e2e(Playwright chrome-headless)가 node-05에서 4Gi에 걸려 OOMKilled(03:16·13:05·13:08). 2026-11-09 6Gi→8Gi: 웹 단위 시험 중 6Gi에 닿아 러너가 끊김(runner lost communication)
         volumeMounts:
           - name: work
