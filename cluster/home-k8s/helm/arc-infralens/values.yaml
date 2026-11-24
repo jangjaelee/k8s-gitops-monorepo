@@ -18,7 +18,8 @@ minRunners: 0
 # 2026-11-15 무게별 분리 3단계(PM 승인): 02·03 넘침 라벨을 떼고 04~07 전용 → 04 3 + 05·06·07 각 1 = 6개, maxRunners 6. 가벼운 잡은 arc-infralens-light(02·03)
 # 2026-11-23: worker-node-08(kyj 인텔 맥 i9-9980HK 위 lima Ubuntu VM 12 vCPU·24GB, 192.168.50.119, 유선 브리지) join, CI 전용 taint·라벨로 2개 → maxRunners 6→8(PM 승인)
 # 2026-11-24: worker-node-05가 우선순위가 낮아 8개로는 거의 비어 있음(CPU 0%) → 05 몫 1개를 더해 04 3 + 05·06·07 각 1 + 08 2 = 8개 + 여유 1, maxRunners 8→9(PM 승인)
-maxRunners: 9
+# 2026-11-24: 04 3→2(node04-cpu-hold), 08 2→1(node08-cpu-hold) → 04 2 + 05·06·07·08 각 1 = 6개 동시, maxRunners 9→7(여유 1, PM 승인)
+maxRunners: 7
 
 # Argo CD는 helm lookup을 못 하므로 컨트롤러 ServiceAccount를 직접 적는다(helm/arc-controller/values.yaml, release arc)
 controllerServiceAccount:
