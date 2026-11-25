@@ -1,5 +1,5 @@
 # 무거운 잡 넘침 토글(2026-11-15 PM 승인). 1분마다:
-#  - arc-infralens 러너 Pod 중 Pending이 있고 02·03 CPU 사용이 70% 미만이면 arc-infralens-overflow maxRunners=2
+#  - arc-infralens 러너 Pod 중 Pending이 있거나(또는 무거운 러너가 잡으로 꽉 참 = HEAVY_MAX개, 2026-11-25 PM 승인: 06·07·08을 빼 maxRunners 3이라 Pending이 생기지 않음) 02·03 CPU 사용이 70% 미만이면 arc-infralens-overflow maxRunners=2
 #  - Pending이 없고 넘침 러너가 잡을 안 돌면(EphemeralRunner에 jobRepository 없음) 0
 # 권한: arc-runners의 pods·ephemeralrunners 읽기, 그 ARS 하나 patch, 노드 지표(metrics.k8s.io nodes) 읽기
 apiVersion: v1
@@ -105,6 +105,9 @@ spec:
                   NS=arc-runners
                   # 노드에 배치되지 못한 러너만 센다(PodScheduled=False). 막 뜨는 중인 Pod는 빼기
                   pending=$(kubectl -n $NS get pods -l actions.github.com/scale-set-name=arc-infralens --field-selector=status.phase=Pending -o jsonpath='{range .items[*]}{range .status.conditions[?(@.type=="PodScheduled")]}{.status}{"\n"}{end}{end}' | grep -c False || true)
+                  HEAVY_MAX=3   # helm/arc-infralens/values.yaml maxRunners와 맞춘다
+                  full=$(kubectl -n $NS get ephemeralrunners -l actions.github.com/scale-set-name=arc-infralens -o jsonpath='{range .items[*]}{.status.jobRepository}{"\n"}{end}' | grep -c . || true)
+                  [ "$full" -ge "$HEAVY_MAX" ] && pending=$((pending+1))
                   busy=$(kubectl -n $NS get ephemeralrunners -l actions.github.com/scale-set-name=arc-infralens-overflow -o jsonpath='{range .items[*]}{.status.jobRepository}{"\n"}{end}' | grep -c . || true)
                   cur=$(kubectl -n $NS get autoscalingrunnerset arc-infralens-overflow -o jsonpath='{.spec.maxRunners}')
                   hot=0
@@ -118,7 +121,7 @@ spec:
                   want=$cur
                   if [ "$pending" -gt 0 ] && [ "$hot" -lt 2 ]; then want=2
                   elif [ "$pending" -eq 0 ] && [ "$busy" -eq 0 ]; then want=0; fi
-                  echo "pending=$pending busy=$busy hot=$hot cur=$cur want=$want"
+                  echo "pending=$pending full=$full busy=$busy hot=$hot cur=$cur want=$want"
                   [ "$want" != "$cur" ] && kubectl -n $NS patch autoscalingrunnerset arc-infralens-overflow --type=merge -p "{\"spec\":{\"maxRunners\":$want}}"
                   exit 0
 ---
