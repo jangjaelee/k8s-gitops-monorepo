@@ -35,9 +35,6 @@ spec:
           # (M66 #3465) 알림 시험: 비밀값 Secret infralens-notify(레포 밖, 키 webhook-slack-test)를 API 서버에 마운트(PM 11-26 승인). 시험 뒤 지움
           - name: notify.existingSecret
             value: infralens-notify
-          # (M36 #3465 D⑤) 수집 최신화 CronJob 켬(PM 11-26 승인, 운영 설치 확인 실측). 실측 뒤 끔
-          - name: collector.freshen.enabled
-            value: "true"
           # Pod 셸 설치(PM 승인 11-03). 로컬 클러스터는 namespaces를 비워 열지 않고, 추가 클러스터(dev EKS 대상)는
           # 그 클러스터의 셸 전용 신원과 VAP로 허용 네임스페이스를 정한다(레포 밖에서 관리)
           - name: kube.exec.enabled
