@@ -84,8 +84,8 @@ CNI나 Argo CD가 망가져도 Argo CD 없이 복구할 수 있게 Helm CLI로 �
 | kube-prometheus-stack | o11y | prometheus-operator | prometheus-community/kube-prometheus-stack 84.1.0 | operator v0.90.1, Prometheus v3.11.3 | `helm/prometheus-operator/values.yaml` | Prometheus 1개(보존 7일, local-path 10Gi, remoteWrite → Mimir 테넌트 home-k8s). Istio 수집: PodMonitor `envoy-stats`, ServiceMonitor `istiod`. node-exporter 켬(2026-10-29, 모든 노드, 요청 50m·32Mi). Grafana·Alertmanager 끔 |
 | kiali-operator | o11y | kiali-operator | kiali/kiali-operator 2.33.0 (https://kiali.org/helm-charts) | Kiali v2.33.0 | `helm/kiali-operator/values.yaml` | 차트가 Kiali CR(`istio-system/kiali`)을 만들고 operator가 Kiali 서버를 istio-system에 띄움. `https://kiali.awx.kr`, 로그인 token(ServiceAccount 토큰), 쓰기 허용, Prometheus는 kube-prometheus-stack |
 | mimir | o11y | mimir | 이 레포 path @ main | grafana/mimir 3.2.3, nginx 1.29.2-alpine | `manifests/mimir/` | monolithic 1개(worker-node-02 고정, local-path 40Gi, 보존 30일), 멀티테넌시(테넌트 `home-k8s`), max_label_names_per_series 50. basic auth 프록시 `mimir-gateway`(Secret `mimir/mimir-basic-auth`는 레포 밖). `https://mimir.awx.kr`. InfraLens PoC가 읽음 |
-| loki | o11y | loki | grafana/loki 7.6.0 | Loki 3.6.18 | `helm/loki/values.yaml` | 단일 바이너리 1개, 인증 없음, local-path 10Gi, 보존 7일. Istio 접근 로그(istio-proxy)만 저장. InfraLens PoC 접속 국가의 Loki 관측 원천(`http://loki.loki.svc:3100`, 2026-11-12) |
-| alloy | o11y | alloy | grafana/alloy 1.15.0 | Alloy v1.21.3 | `helm/alloy/values.yaml` | DaemonSet(모든 노드), `/var/log/pods`에서 istio-proxy 컨테이너 로그만 Loki로. 레이블 namespace·pod·container·node |
+| loki | o11y | loki | grafana/loki 7.6.0 | Loki 3.6.18 | `helm/loki/values.yaml` | 단일 바이너리 1개, 인증 없음, local-path 10Gi, 보존 7일. Istio 접근 로그(istio-proxy) 저장. 2026-11-27부터 kube-apiserver 감사 로그(`job=kube-apiserver-audit`, 보존 14일, retention_stream)도 저장(M58 ④, `node-config/apiserver-audit/`). InfraLens PoC 접속 국가의 Loki 관측 원천(`http://loki.loki.svc:3100`, 2026-11-12) |
+| alloy | o11y | alloy | grafana/alloy 1.15.0 | Alloy v1.21.3 | `helm/alloy/values.yaml` | DaemonSet(모든 노드), `/var/log/pods`에서 istio-proxy 컨테이너 로그를 Loki로, master의 `/var/log/kubernetes/audit/audit.log`(apiserver 감사)도 `job=kube-apiserver-audit`으로(2026-11-27). 레이블 namespace·pod·container·node |
 
 ### Argo CD 저장소 등록
 
@@ -169,6 +169,7 @@ Client ──► 192.168.50.200 (Cilium LB IPAM, L2 ARP)
    ```
 4. 노드 설정: `$C/node-config/wifi-promisc/install.sh <SSH 호스트...>`
 5. etcd 백업: `$C/node-config/etcd-backup/install.sh`(master·worker-node-02), 맥은 `$C/node-config/etcd-backup/mac/install-mac.sh`
+6. apiserver 감사 로그: `$C/node-config/apiserver-audit/README.md` 절차(master-node-01, apiserver 재시작 약 30~60초)
 
 ## 앱을 Gateway에 붙이기
 

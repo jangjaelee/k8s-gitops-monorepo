@@ -66,6 +66,16 @@ alloy:
         forward_to = [loki.write.default.receiver]
       }
 
+      // 2026-11-27 PM 승인(M58 ④): master-node-01 kube-apiserver 감사 로그(JSON, /var/log/kubernetes/audit, varlog 마운트로 보임)를 Loki로. 다른 노드에는 파일이 없어 아무것도 안 읽는다
+      local.file_match "apiserver_audit" {
+        path_targets = [{"__path__" = "/var/log/kubernetes/audit/audit.log", "job" = "kube-apiserver-audit"}]
+      }
+
+      loki.source.file "apiserver_audit" {
+        targets    = local.file_match.apiserver_audit.targets
+        forward_to = [loki.write.default.receiver]
+      }
+
       loki.write "default" {
         endpoint {
           url = "http://loki.loki.svc:3100/loki/api/v1/push"

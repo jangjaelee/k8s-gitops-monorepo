@@ -1,0 +1,32 @@
+# kube-apiserver 감사 정책(M58 ④ 곧 없어질 API 호출자 보기, 2026-11-27 PM 승인). master-node-01 /etc/kubernetes/audit-policy.yaml에 둔다(SSH로 설치, Argo CD 미적용).
+# 모든 동사(get/list/watch 포함) Metadata — 읽기로 옛 API를 부르는 쪽도 보이게. 노이즈는 리소스·사용자로만 뺀다.
+# 로그: /var/log/kubernetes/audit/audit.log → Alloy(DaemonSet, varlog 마운트) → Loki job=kube-apiserver-audit, 보관 14일
+apiVersion: audit.k8s.io/v1
+kind: Policy
+omitStages: ["RequestReceived"]
+rules:
+  - level: None
+    users: ["system:kube-scheduler", "system:kube-controller-manager", "system:apiserver"]
+  - level: None
+    userGroups: ["system:nodes"]
+  - level: None
+    resources:
+      - group: ""
+        resources: ["events", "endpoints"]
+      - group: "events.k8s.io"
+        resources: ["events"]
+      - group: "coordination.k8s.io"
+        resources: ["leases"]
+      - group: "discovery.k8s.io"
+        resources: ["endpointslices"]
+      - group: "reports.kyverno.io"
+        resources: ["ephemeralreports", "clusterephemeralreports"]
+      - group: "wgpolicyk8s.io"
+        resources: ["policyreports", "clusterpolicyreports"]
+      - group: "authentication.k8s.io"
+        resources: ["tokenreviews"]
+      - group: "authorization.k8s.io"
+        resources: ["subjectaccessreviews", "selfsubjectaccessreviews"]
+  - level: None
+    nonResourceURLs: ["/healthz*", "/livez*", "/readyz*", "/version", "/metrics"]
+  - level: Metadata
