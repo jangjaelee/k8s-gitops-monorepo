@@ -1,5 +1,5 @@
 # chart: grafana/loki 7.6.0 (Loki 3.6.18)  (Argo CD app: argocd/applications/loki.yaml)
-# Istio 접근 로그(istio-proxy) 저장소. InfraLens PoC 접속 국가의 Loki 관측 원천. 2026-11-12 사용자 결정(istio-proxy만, 보관 7일·10Gi)
+# Istio 접근 로그(istio-proxy) 저장소. InfraLens PoC 접속 국가의 Loki 관측 원천. 2026-11-12 사용자 결정(istio-proxy만, 보관 7일·10Gi) 2026-11-27: kube-apiserver 감사 로그(job=kube-apiserver-audit)도 받음, 그 스트림만 14일(M58 ④, PM 승인)
 # 단일 바이너리, 파일시스템(local-path PVC), 레플리카 1. 인증 없음(클러스터 안 http://loki.loki.svc:3100)
 deploymentMode: SingleBinary
 loki:
@@ -19,6 +19,11 @@ loki:
           period: 24h
   limits_config:
     retention_period: 168h
+    # 2026-11-27 PM 승인(M58 ④): apiserver 감사 로그만 14일 보관(기존 Loki 재사용, Istio 로그는 7일 그대로)
+    retention_stream:
+      - selector: '{job="kube-apiserver-audit"}'
+        priority: 1
+        period: 336h
     reject_old_samples: true
     reject_old_samples_max_age: 168h
   compactor:
