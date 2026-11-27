@@ -105,7 +105,7 @@ spec:
                   NS=arc-runners
                   # 노드에 배치되지 못한 러너만 센다(PodScheduled=False). 막 뜨는 중인 Pod는 빼기
                   pending=$(kubectl -n $NS get pods -l actions.github.com/scale-set-name=arc-infralens --field-selector=status.phase=Pending -o jsonpath='{range .items[*]}{range .status.conditions[?(@.type=="PodScheduled")]}{.status}{"\n"}{end}{end}' | grep -c False || true)
-                  HEAVY_MAX=3   # helm/arc-infralens/values.yaml maxRunners와 맞춘다
+                  HEAVY_MAX=4   # helm/arc-infralens/values.yaml maxRunners와 맞춘다
                   full=$(kubectl -n $NS get ephemeralrunners -l actions.github.com/scale-set-name=arc-infralens -o jsonpath='{range .items[*]}{.status.jobRepositoryName}{"\n"}{end}' | grep -c . || true)
                   [ "$full" -ge "$HEAVY_MAX" ] && pending=$((pending+1))
                   busy=$(kubectl -n $NS get ephemeralrunners -l actions.github.com/scale-set-name=arc-infralens-overflow -o jsonpath='{range .items[*]}{.status.jobRepositoryName}{"\n"}{end}' | grep -c . || true)

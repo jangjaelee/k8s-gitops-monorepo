@@ -20,7 +20,8 @@ minRunners: 0
 # 2026-11-24: worker-node-05가 우선순위가 낮아 8개로는 거의 비어 있음(CPU 0%) → 05 몫 1개를 더해 04 3 + 05·06·07 각 1 + 08 2 = 8개 + 여유 1, maxRunners 8→9(PM 승인)
 # 2026-11-24: 04 3→2(node04-cpu-hold), 08 2→1(node08-cpu-hold) → 04 2 + 05·06·07·08 각 1 = 6개 동시, maxRunners 9→7(여유 1, PM 승인)
 # 2026-11-25: 전력 절약(PM 결정) — 06은 lab, 07은 lab2 전용으로 빼고 08(맥북 VM)은 전원 끔 → 04 2 + 05 1 = 3개, maxRunners 7→3
-maxRunners: 3
+# 2026-11-27 PM 직접 승인: worker-node-08 CI 전용으로 다시 붙임(kubelet --register-with-taints로 처음부터 taint), node08-cpu-hold로 1개 → 04 2 + 05 1 + 08 1 = 4, maxRunners 3→4
+maxRunners: 4
 
 # Argo CD는 helm lookup을 못 하므로 컨트롤러 ServiceAccount를 직접 적는다(helm/arc-controller/values.yaml, release arc)
 controllerServiceAccount:
