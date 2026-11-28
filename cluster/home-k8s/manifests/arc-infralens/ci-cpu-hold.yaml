@@ -47,38 +47,3 @@ spec:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities: { drop: [ALL] }
----
-# worker-node-08(인텔 맥 VM 12 vCPU) 러너 1개로 제한(2026-11-27 다시 붙임, PM 승인): 코어당 성능이 낮아 2개면 vitest 2.3배 느림
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: node08-cpu-hold
-  namespace: arc-runners
-  labels: { app: node08-cpu-hold }
-spec:
-  replicas: 1
-  selector: { matchLabels: { app: node08-cpu-hold } }
-  template:
-    metadata:
-      labels: { app: node08-cpu-hold }
-    spec:
-      priorityClassName: ci-cpu-hold
-      automountServiceAccountToken: false
-      nodeSelector:
-        kubernetes.io/hostname: worker-node-08
-      tolerations:
-        - { key: dedicated, operator: Equal, value: ci, effect: NoSchedule }
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 65535
-        seccompProfile: { type: RuntimeDefault }
-      containers:
-        - name: pause
-          image: registry.k8s.io/pause:3.10
-          resources:
-            requests: { cpu: "5", memory: 16Mi }
-            limits: { memory: 32Mi }
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities: { drop: [ALL] }
